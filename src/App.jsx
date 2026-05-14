@@ -1023,7 +1023,7 @@ function TreeGame() {
           <button className="tree-btn" onClick={doReset}>다시 하기</button>
         </div>
       ) : deadStage !== null ? (
-        <div className="tree-dead-msg">💀 {deadStage + 1}단계에서 실패!</div>
+        <div className="tree-dead-msg">💀 실패했다!</div>
       ) : anim === "idle" ? (
         <button className="tree-btn" onClick={doAttempt} disabled={practiceAnim}>도전!</button>
       ) : null}
@@ -1961,11 +1961,14 @@ export default function App() {
         .tree-dead-msg {
           color: #ff7070;
           font-family: "Playfair Display", serif;
-          font-size: 0.9rem;
+          font-size: 1rem;
           font-weight: 700;
           text-align: center;
-          padding: 6px 0;
+          padding: 10px 0;
           flex-shrink: 0;
+          width: 100%;
+          background: rgba(0,0,0,0.55);
+          border-top: 1px solid rgba(255,80,80,0.2);
         }
         .tree-death-overlay {
           position: absolute;
