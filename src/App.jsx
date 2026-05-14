@@ -991,6 +991,14 @@ function TreeGame() {
           {anim === "cleared" && endingSeq >= 2 && (
             <div className="tree-shoes">👟</div>
           )}
+          {deadStage !== null && (
+            <div className="tree-death-overlay">
+              <div className="tree-death-card">
+                <div className="tree-death-stage">{deadStage + 1}단계에서 실패!</div>
+                <button className="tree-btn" onClick={doRestart}>다시 시작</button>
+              </div>
+            </div>
+          )}
         </div>
         {anim !== "cleared" && (
           <div className="tree-practice-panel">
@@ -1015,10 +1023,7 @@ function TreeGame() {
           <button className="tree-btn" onClick={doReset}>다시 하기</button>
         </div>
       ) : deadStage !== null ? (
-        <div className="tree-dead-screen">
-          <div className="tree-dead-msg">💀 {deadStage + 1}단계에서 실패!</div>
-          <button className="tree-btn" onClick={doRestart}>다시 시작</button>
-        </div>
+        <div className="tree-dead-msg">💀 {deadStage + 1}단계에서 실패!</div>
       ) : anim === "idle" ? (
         <button className="tree-btn" onClick={doAttempt} disabled={practiceAnim}>도전!</button>
       ) : null}
@@ -1953,18 +1958,39 @@ export default function App() {
           will-change: transform;
         }
         .tree-char-clear { left: auto; right: 15%; }
-        .tree-dead-screen {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          padding: 6px 0;
-          flex-shrink: 0;
-        }
         .tree-dead-msg {
           color: #ff7070;
           font-family: "Playfair Display", serif;
-          font-size: 1rem;
+          font-size: 0.9rem;
+          font-weight: 700;
+          text-align: center;
+          padding: 6px 0;
+          flex-shrink: 0;
+        }
+        .tree-death-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10;
+        }
+        .tree-death-card {
+          background: rgba(12,3,3,0.94);
+          border: 1px solid rgba(255,80,80,0.4);
+          border-radius: 10px;
+          padding: 24px 36px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+          box-shadow: 0 10px 32px rgba(0,0,0,0.6);
+        }
+        .tree-death-stage {
+          color: #ff7070;
+          font-family: "Playfair Display", serif;
+          font-size: 1.3rem;
           font-weight: 700;
           text-align: center;
         }
