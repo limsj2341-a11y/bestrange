@@ -817,24 +817,41 @@ function TreeGame() {
   const [stage, setStage] = useState(0);
   const [anim, setAnim] = useState("idle");
   const [showFail, setShowFail] = useState(false);
+  const [practiceCount, setPracticeCount] = useState(0);
+  const [practiceBonus, setPracticeBonus] = useState(0);
+  const [practiceAnim, setPracticeAnim] = useState(false);
+  const [showPracticeBar, setShowPracticeBar] = useState(false);
 
   const charRef = useRef(null);
   const sceneRef = useRef(null);
   const rafRef = useRef(null);
+  const practiceTimeoutRef = useRef(null);
 
   const cur = STAGES[stage];
   const treeH = 40 + (cur.height - 1) * 22;
   const PEAK_H = treeH + 55;
+  const effectiveProb = Math.min(1.0, cur.prob + practiceBonus / 100);
 
-  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+  useEffect(() => () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (practiceTimeoutRef.current) clearTimeout(practiceTimeoutRef.current);
+  }, []);
+
+  const getPracticeBonus = (n) => {
+    if (n <= 2) return 1;
+    if (n <= 4) return 2;
+    if (n <= 6) return 3;
+    if (n <= 8) return 4;
+    return 5;
+  };
 
   const doAttempt = () => {
-    if (anim !== "idle") return;
-    const ok = Math.random() < cur.prob;
+    if (anim !== "idle" || practiceAnim) return;
+    const ok = Math.random() < effectiveProb;
     if (ok) {
       setAnim("jumping");
       setShowFail(false);
-      const sceneW = sceneRef.current?.clientWidth ?? 820;
+      const sceneW = sceneRef.current?.clientWidth ?? 740;
       const travel = sceneW * 0.70;
       const t0 = performance.now();
       const dur = 1100;
@@ -848,6 +865,8 @@ function TreeGame() {
           setAnim("cleared");
         } else {
           setStage(s => s + 1);
+          setPracticeCount(0);
+          setPracticeBonus(0);
           setAnim("idle");
           if (charRef.current) charRef.current.style.transform = "";
         }
@@ -866,6 +885,8 @@ function TreeGame() {
         if (charRef.current) charRef.current.style.transform = `translateY(${y}px)`;
         if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
         setStage(0);
+        setPracticeCount(0);
+        setPracticeBonus(0);
         setShowFail(true);
         setAnim("idle");
         if (charRef.current) charRef.current.style.transform = "";
@@ -874,11 +895,45 @@ function TreeGame() {
     }
   };
 
+  const doPractice = () => {
+    if (anim !== "idle" || practiceAnim) return;
+    setPracticeAnim(true);
+    setShowPracticeBar(true);
+    const sceneW = sceneRef.current?.clientWidth ?? 740;
+    const travel = sceneW * 0.28;
+    const PPEAK = 110;
+    const t0 = performance.now();
+    const dur = 850;
+    const snapCount = practiceCount;
+    const tick = (now) => {
+      const t = Math.min((now - t0) / dur, 1);
+      const x = t * travel;
+      const y = 4 * PPEAK * t * (t - 1);
+      if (charRef.current) charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
+      if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+      practiceTimeoutRef.current = setTimeout(() => {
+        if (charRef.current) charRef.current.style.transform = "";
+        setShowPracticeBar(false);
+        setPracticeAnim(false);
+        const newCount = snapCount + 1;
+        const bonus = getPracticeBonus(newCount);
+        setPracticeCount(newCount);
+        setPracticeBonus(prev => Math.min(100, prev + bonus));
+      }, 200);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+
   const doReset = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (practiceTimeoutRef.current) clearTimeout(practiceTimeoutRef.current);
     setStage(0);
+    setPracticeCount(0);
+    setPracticeBonus(0);
     setAnim("idle");
+    setPracticeAnim(false);
     setShowFail(false);
+    setShowPracticeBar(false);
     if (charRef.current) charRef.current.style.transform = "";
   };
 
@@ -888,18 +943,47 @@ function TreeGame() {
         <span className="tree-hud-stage">{stage + 1} / 6단계</span>
         <span className="tree-hud-age">{cur.age}</span>
         <span className="tree-hud-height">🌲 {cur.height}m</span>
-        <span className="tree-hud-prob">성공률 {Math.round(cur.prob * 100)}%</span>
+        <span className="tree-hud-prob">
+          성공률 {Math.round(effectiveProb * 100)}%
+          {practiceBonus > 0 && <span className="tree-hud-bonus"> (+{practiceBonus}%)</span>}
+        </span>
       </div>
-      <div className="tree-scene" ref={sceneRef}>
-        <div className="tree-ground" />
-        <div className="tree-poplar" style={{ bottom: "25px", height: `${treeH + 20}px` }}>
-          <div className="tree-canopy" style={{ height: `${treeH}px` }} />
-          <div className="tree-trunk" />
+      <div className="tree-main">
+        <div className="tree-scene" ref={sceneRef}>
+          <div className="tree-ground" />
+          {showPracticeBar && (
+            <div className="pbar-wrap" style={{ left: "30%", bottom: "25px", height: "80px", width: "60px" }}>
+              <div className="pbar-stand" style={{ left: 0 }} />
+              <div className="pbar-stand" style={{ right: 0 }} />
+              <div className="pbar-bar" />
+            </div>
+          )}
+          <div className="tree-poplar" style={{ bottom: "25px", height: `${treeH + 20}px` }}>
+            <div className="tree-canopy" style={{ height: `${treeH}px` }} />
+            <div className="tree-trunk" />
+          </div>
+          {anim !== "cleared" ? (
+            <div className="tree-char" ref={charRef}>{cur.char}</div>
+          ) : (
+            <div className="tree-char tree-char-clear">{STAGES[5].char}</div>
+          )}
         </div>
-        {anim !== "cleared" ? (
-          <div className="tree-char" ref={charRef}>{cur.char}</div>
-        ) : (
-          <div className="tree-char tree-char-clear">{STAGES[5].char}</div>
+        {anim !== "cleared" && (
+          <div className="tree-practice-panel">
+            <button
+              className="tree-practice-btn"
+              onClick={doPractice}
+              disabled={anim !== "idle" || practiceAnim}
+            >
+              연습하기
+            </button>
+            {practiceCount > 0 && (
+              <>
+                <div className="tree-practice-combo">{practiceCount}콤보</div>
+                <div className="tree-practice-bonus-disp">+{practiceBonus}%</div>
+              </>
+            )}
+          </div>
         )}
       </div>
       {showFail && anim === "idle" && (
@@ -911,7 +995,7 @@ function TreeGame() {
           <button className="tree-btn" onClick={doReset}>다시 하기</button>
         </div>
       ) : anim === "idle" ? (
-        <button className="tree-btn" onClick={doAttempt}>도전!</button>
+        <button className="tree-btn" onClick={doAttempt} disabled={practiceAnim}>도전!</button>
       ) : null}
     </div>
   );
@@ -1719,6 +1803,71 @@ export default function App() {
           align-self: stretch;
           background: #0d0a06;
         }
+        .tree-main {
+          display: flex;
+          flex-direction: row;
+          flex: 1;
+          width: 100%;
+          overflow: hidden;
+        }
+        .tree-practice-panel {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 12px 8px;
+          gap: 8px;
+          width: 78px;
+          flex-shrink: 0;
+          background: rgba(0,0,0,0.25);
+          border-left: 1px solid rgba(201,168,76,0.15);
+        }
+        .tree-practice-btn {
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          padding: 14px 8px;
+          background: linear-gradient(180deg, #1a3a1a, #0d200d);
+          color: #90dd90;
+          border: 1px solid rgba(100,200,100,0.4);
+          border-radius: 6px;
+          cursor: pointer;
+          font-family: "Playfair Display", serif;
+          font-size: 0.88rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+        }
+        .tree-practice-btn:hover:not(:disabled) { background: linear-gradient(180deg, #2a5a2a, #1a3a1a); }
+        .tree-practice-btn:disabled { opacity: 0.38; cursor: default; }
+        .tree-practice-combo {
+          color: #90dd90;
+          font-family: "Playfair Display", serif;
+          font-size: 0.82rem;
+          font-weight: 700;
+          text-align: center;
+        }
+        .tree-practice-bonus-disp {
+          color: #80c0ff;
+          font-family: monospace;
+          font-size: 0.8rem;
+          text-align: center;
+        }
+        .tree-hud-bonus { color: #80c0ff; font-size: 0.75rem; margin-left: 2px; }
+        .pbar-wrap { position: absolute; }
+        .pbar-stand {
+          position: absolute;
+          bottom: 0;
+          width: 5px;
+          height: 100%;
+          background: #8a8a8a;
+          border-radius: 2px;
+        }
+        .pbar-bar {
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 5px;
+          background: linear-gradient(to right, #cc2222, #ff5555, #cc2222);
+          border-radius: 2px;
+          box-shadow: 0 0 8px rgba(255,80,80,0.6);
+        }
         .tree-hud {
           display: flex;
           gap: 20px;
@@ -1736,7 +1885,6 @@ export default function App() {
         .tree-hud-prob   { color: #80c0ff; font-family: monospace; font-size: 0.82rem; }
         .tree-scene {
           position: relative;
-          width: 100%;
           flex: 1;
           overflow: hidden;
           background: linear-gradient(to bottom, #87ceeb 0%, #b8d9f0 60%, #c8dea8 100%);
