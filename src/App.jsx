@@ -78,15 +78,23 @@ const SPREADS = [
 
   {
     left: {
-      title: "O X 퀴즈",
-      content:
-        "이야기를 읽고 맞으면 ⭕ 틀리면 ❌를 누르는 간단한 게임입니다.",
+      type: "rules",
+      title: "포플러 나무 넘기",
+      rules: [
+        "도전 버튼을 눌러 나무를 넘어라",
+        "성공하면 캐릭터가 나무를 뛰어넘는다",
+        "실패하면 낙사 — 1단계부터 다시 시작",
+        "6단계를 모두 성공하면 클리어!",
+        "단계가 높을수록 나무가 높아지고 캐릭터도 늙는다",
+        "1단계 성공률 90%, 6단계 성공률 30%",
+      ],
     },
 
     right: {
       type: "game",
       gameId: "ox",
       label: "게임 시작하기",
+      title: "포플러 나무를 넘어라!",
     },
   },
 
@@ -795,10 +803,124 @@ function NailGame() {
   return null;
 }
 
+// ==================== TREE GAME ====================
+function TreeGame() {
+  const STAGES = [
+    { height: 1,  prob: 0.90, age: "아이",    char: "🧒" },
+    { height: 3,  prob: 0.80, age: "청소년",  char: "👦" },
+    { height: 5,  prob: 0.70, age: "청년",    char: "🧑" },
+    { height: 7,  prob: 0.50, age: "중년",    char: "👨" },
+    { height: 9,  prob: 0.40, age: "노인",    char: "🧓" },
+    { height: 10, prob: 0.30, age: "할아버지", char: "👴" },
+  ];
+
+  const [stage, setStage] = useState(0);
+  const [anim, setAnim] = useState("idle");
+  const [showFail, setShowFail] = useState(false);
+
+  const charRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rafRef = useRef(null);
+
+  const cur = STAGES[stage];
+  const treeH = 40 + (cur.height - 1) * 22;
+  const PEAK_H = treeH + 55;
+
+  useEffect(() => () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); }, []);
+
+  const doAttempt = () => {
+    if (anim !== "idle") return;
+    const ok = Math.random() < cur.prob;
+    if (ok) {
+      setAnim("jumping");
+      setShowFail(false);
+      const sceneW = sceneRef.current?.clientWidth ?? 820;
+      const travel = sceneW * 0.70;
+      const t0 = performance.now();
+      const dur = 1100;
+      const tick = (now) => {
+        const t = Math.min((now - t0) / dur, 1);
+        const x = t * travel;
+        const y = 4 * PEAK_H * t * (t - 1);
+        if (charRef.current) charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
+        if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+        if (stage >= 5) {
+          setAnim("cleared");
+        } else {
+          setStage(s => s + 1);
+          setAnim("idle");
+          if (charRef.current) charRef.current.style.transform = "";
+        }
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } else {
+      setAnim("failing");
+      setShowFail(false);
+      const t0 = performance.now();
+      const dur = 1300;
+      const tick = (now) => {
+        const t = Math.min((now - t0) / dur, 1);
+        let y;
+        if (t < 0.18) y = -(t / 0.18) * 65;
+        else { const t2 = (t - 0.18) / 0.82; y = -65 + t2 * t2 * 560; }
+        if (charRef.current) charRef.current.style.transform = `translateY(${y}px)`;
+        if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+        setStage(0);
+        setShowFail(true);
+        setAnim("idle");
+        if (charRef.current) charRef.current.style.transform = "";
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    }
+  };
+
+  const doReset = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setStage(0);
+    setAnim("idle");
+    setShowFail(false);
+    if (charRef.current) charRef.current.style.transform = "";
+  };
+
+  return (
+    <div className="tree-screen">
+      <div className="tree-hud">
+        <span className="tree-hud-stage">{stage + 1} / 6단계</span>
+        <span className="tree-hud-age">{cur.age}</span>
+        <span className="tree-hud-height">🌲 {cur.height}m</span>
+        <span className="tree-hud-prob">성공률 {Math.round(cur.prob * 100)}%</span>
+      </div>
+      <div className="tree-scene" ref={sceneRef}>
+        <div className="tree-ground" />
+        <div className="tree-poplar" style={{ bottom: "25px", height: `${treeH + 20}px` }}>
+          <div className="tree-canopy" style={{ height: `${treeH}px` }} />
+          <div className="tree-trunk" />
+        </div>
+        {anim !== "cleared" ? (
+          <div className="tree-char" ref={charRef}>{cur.char}</div>
+        ) : (
+          <div className="tree-char tree-char-clear">{STAGES[5].char}</div>
+        )}
+      </div>
+      {showFail && anim === "idle" && (
+        <div className="tree-fail-msg">💀 실패! 처음부터 다시...</div>
+      )}
+      {anim === "cleared" ? (
+        <div className="tree-cleared-area">
+          <div className="tree-cleared-msg">🎉 전 단계 클리어!</div>
+          <button className="tree-btn" onClick={doReset}>다시 하기</button>
+        </div>
+      ) : anim === "idle" ? (
+        <button className="tree-btn" onClick={doAttempt}>도전!</button>
+      ) : null}
+    </div>
+  );
+}
+
 // ==================== GAME MODAL ====================
 const GAME_LABELS = {
   game1: "못 박기",
-  ox: "OX 퀴즈",
+  ox: "포플러 나무 넘기",
   memory: "카드 맞추기",
   word: "낱말 게임",
 };
@@ -813,8 +935,9 @@ function GameModal({ gameId, onClose }) {
           </span>
           <button className="game-modal-close" onClick={onClose}>✕</button>
         </div>
-        <div className="game-modal-body" style={gameId === "game1" ? { padding: 0 } : {}}>
+        <div className="game-modal-body" style={(gameId === "game1" || gameId === "ox") ? { padding: 0 } : {}}>
           {gameId === "game1" && <NailGame />}
+          {gameId === "ox" && <TreeGame />}
         </div>
       </div>
     </div>
@@ -1584,6 +1707,116 @@ export default function App() {
           background: radial-gradient(circle at 33% 30%, #ff9090, #cc2222 52%, #5c0000);
           box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 8px rgba(200,0,0,0.55);
         }
+
+
+        /* ---- TREE GAME ---- */
+        .tree-screen {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+          height: 100%;
+          align-self: stretch;
+          background: #0d0a06;
+        }
+        .tree-hud {
+          display: flex;
+          gap: 20px;
+          align-items: center;
+          padding: 10px 20px;
+          background: rgba(0,0,0,0.4);
+          border-bottom: 1px solid rgba(201,168,76,0.2);
+          width: 100%;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .tree-hud-stage  { color: #ecd07a; font-family: "Playfair Display", serif; font-weight: 700; font-size: 0.88rem; }
+        .tree-hud-age    { color: #c9a84c; font-size: 0.85rem; }
+        .tree-hud-height { color: #90dd90; font-size: 0.85rem; }
+        .tree-hud-prob   { color: #80c0ff; font-family: monospace; font-size: 0.82rem; }
+        .tree-scene {
+          position: relative;
+          width: 100%;
+          flex: 1;
+          overflow: hidden;
+          background: linear-gradient(to bottom, #87ceeb 0%, #b8d9f0 60%, #c8dea8 100%);
+        }
+        .tree-ground {
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          height: 25px;
+          background: linear-gradient(to bottom, #5a8a3a, #3d5a20);
+          border-top: 3px solid #7ab050;
+        }
+        .tree-poplar {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          width: 48px;
+        }
+        .tree-canopy {
+          width: 42px;
+          background: linear-gradient(to bottom, #1a5c2a, #2d8a44 50%, #1a5c2a);
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .tree-trunk {
+          width: 10px;
+          height: 20px;
+          background: linear-gradient(to right, #8b5e3c, #6b4423);
+          border-radius: 2px;
+          flex-shrink: 0;
+        }
+        .tree-char {
+          position: absolute;
+          left: 15%;
+          bottom: 25px;
+          font-size: 1.8rem;
+          line-height: 1;
+          will-change: transform;
+        }
+        .tree-char-clear { left: auto; right: 15%; }
+        .tree-fail-msg {
+          color: #ff7070;
+          font-family: "Playfair Display", serif;
+          font-size: 0.88rem;
+          font-weight: 700;
+          padding: 6px 0;
+          flex-shrink: 0;
+        }
+        .tree-cleared-area {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+          flex-shrink: 0;
+          padding: 8px 0;
+        }
+        .tree-cleared-msg {
+          color: #ecd07a;
+          font-family: "Playfair Display", serif;
+          font-size: 1.3rem;
+          font-weight: 700;
+          text-align: center;
+        }
+        .tree-btn {
+          padding: 10px 32px;
+          background: linear-gradient(135deg, #4b1111, #1d0606);
+          color: #ecd07a;
+          border: 1px solid rgba(201,168,76,0.55);
+          border-radius: 7px;
+          cursor: pointer;
+          font-family: "Playfair Display", serif;
+          font-size: 1rem;
+          font-weight: 700;
+          flex-shrink: 0;
+          margin-bottom: 8px;
+        }
+        .tree-btn:hover { background: linear-gradient(135deg, #6b1919, #2d0a0a); }
 
       `}</style>
 
