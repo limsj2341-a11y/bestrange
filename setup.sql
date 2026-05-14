@@ -7,6 +7,17 @@ create table if not exists rankings (
 
 alter table rankings enable row level security;
 
-create policy if not exists "누구나 읽기 가능" on rankings for select using (true);
-create policy if not exists "누구나 삽입 가능" on rankings for insert with check (true);
-create policy if not exists "누구나 삭제 가능" on rankings for delete using (true);
+do $$ begin
+  create policy "누구나 읽기 가능" on rankings for select using (true);
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create policy "누구나 삽입 가능" on rankings for insert with check (true);
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create policy "누구나 삭제 가능" on rankings for delete using (true);
+exception when duplicate_object then null;
+end $$;
