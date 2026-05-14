@@ -816,7 +816,7 @@ function TreeGame() {
 
   const [stage, setStage] = useState(0);
   const [anim, setAnim] = useState("idle");
-  const [showFail, setShowFail] = useState(false);
+  const [deadStage, setDeadStage] = useState(null);
   const [practiceCount, setPracticeCount] = useState(0);
   const [practiceBonus, setPracticeBonus] = useState(0);
   const [practiceAnim, setPracticeAnim] = useState(false);
@@ -862,7 +862,7 @@ function TreeGame() {
     const ok = Math.random() < effectiveProb;
     if (ok) {
       setAnim("jumping");
-      setShowFail(false);
+      setDeadStage(null);
       const sceneW = sceneRef.current?.clientWidth ?? 740;
       const travel = sceneW * 0.70;
       const t0 = performance.now();
@@ -886,7 +886,6 @@ function TreeGame() {
       rafRef.current = requestAnimationFrame(tick);
     } else {
       setAnim("failing");
-      setShowFail(false);
       const t0 = performance.now();
       const dur = 1300;
       const tick = (now) => {
@@ -896,10 +895,10 @@ function TreeGame() {
         else { const t2 = (t - 0.18) / 0.82; y = -65 + t2 * t2 * 560; }
         if (charRef.current) charRef.current.style.transform = `translateY(${y}px)`;
         if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+        setDeadStage(stage);
         setStage(0);
         setPracticeCount(0);
         setPracticeBonus(0);
-        setShowFail(true);
         setAnim("idle");
         if (charRef.current) charRef.current.style.transform = "";
       };
@@ -936,6 +935,8 @@ function TreeGame() {
     rafRef.current = requestAnimationFrame(tick);
   };
 
+  const doRestart = () => setDeadStage(null);
+
   const doReset = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (practiceTimeoutRef.current) clearTimeout(practiceTimeoutRef.current);
@@ -946,7 +947,7 @@ function TreeGame() {
     setPracticeBonus(0);
     setAnim("idle");
     setPracticeAnim(false);
-    setShowFail(false);
+    setDeadStage(null);
     setShowPracticeBar(false);
     setEndingSeq(0);
     if (charRef.current) charRef.current.style.transform = "";
@@ -1009,12 +1010,14 @@ function TreeGame() {
           </div>
         )}
       </div>
-      {showFail && anim === "idle" && (
-        <div className="tree-fail-msg">💀 실패! 처음부터 다시...</div>
-      )}
       {anim === "cleared" && endingSeq === 3 ? (
         <div className="tree-cleared-area">
           <button className="tree-btn" onClick={doReset}>다시 하기</button>
+        </div>
+      ) : deadStage !== null ? (
+        <div className="tree-dead-screen">
+          <div className="tree-dead-msg">💀 {deadStage + 1}단계에서 실패!</div>
+          <button className="tree-btn" onClick={doRestart}>다시 시작</button>
         </div>
       ) : anim === "idle" ? (
         <button className="tree-btn" onClick={doAttempt} disabled={practiceAnim}>도전!</button>
@@ -1950,13 +1953,20 @@ export default function App() {
           will-change: transform;
         }
         .tree-char-clear { left: auto; right: 15%; }
-        .tree-fail-msg {
-          color: #ff7070;
-          font-family: "Playfair Display", serif;
-          font-size: 0.88rem;
-          font-weight: 700;
+        .tree-dead-screen {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
           padding: 6px 0;
           flex-shrink: 0;
+        }
+        .tree-dead-msg {
+          color: #ff7070;
+          font-family: "Playfair Display", serif;
+          font-size: 1rem;
+          font-weight: 700;
+          text-align: center;
         }
         .tree-cleared-area {
           display: flex;
