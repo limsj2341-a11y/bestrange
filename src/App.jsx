@@ -1003,7 +1003,7 @@ function TreeGame() {
             {practiceCount > 0 && (
               <>
                 <div className="tree-practice-combo">{practiceCount}콤보</div>
-                <div className="tree-practice-bonus-disp">+{practiceBonus}%</div>
+                <div className="tree-practice-bonus-disp">+{getPracticeBonus(practiceCount + 1)}%</div>
               </>
             )}
           </div>
