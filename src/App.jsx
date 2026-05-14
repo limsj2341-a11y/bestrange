@@ -985,26 +985,39 @@ function TreeGame() {
     const sceneW = sceneRef.current?.clientWidth ?? 740;
     const startX = practiceOffsetRef.current;
     const travel = sceneW * 0.22;
+    const landX = startX + travel;
     const PPEAK = 110;
-    const t0 = performance.now();
-    const dur = 850;
     const snapCount = practiceCount;
-    const tick = (now) => {
-      const t = Math.min((now - t0) / dur, 1);
-      const x = startX + travel * Math.sin(Math.PI * t);
+
+    // 1단계: 앞으로 포물선 점프
+    const t0 = performance.now();
+    const jumpDur = 800;
+    const jumpTick = (now) => {
+      const t = Math.min((now - t0) / jumpDur, 1);
+      const x = startX + travel * t;
       const y = 4 * PPEAK * t * (t - 1);
       if (charRef.current) charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
-      if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+      if (t < 1) { rafRef.current = requestAnimationFrame(jumpTick); return; }
+      // 2단계: 착지 후 뒤로 이동
       practiceTimeoutRef.current = setTimeout(() => {
-        if (charRef.current) charRef.current.style.transform = `translateX(${startX}px)`;
-        setPracticeAnim(false);
-        const newCount = snapCount + 1;
-        const bonus = getPracticeBonus(newCount);
-        setPracticeCount(newCount);
-        setPracticeBonus(prev => Math.min(100, prev + bonus));
-      }, 200);
+        const t1 = performance.now();
+        const returnDur = 320;
+        const returnTick = (now2) => {
+          const t2 = Math.min((now2 - t1) / returnDur, 1);
+          const ease = t2 < 0.5 ? 2 * t2 * t2 : -1 + (4 - 2 * t2) * t2;
+          const x2 = landX + (startX - landX) * ease;
+          if (charRef.current) charRef.current.style.transform = `translateX(${x2}px)`;
+          if (t2 < 1) { rafRef.current = requestAnimationFrame(returnTick); return; }
+          if (charRef.current) charRef.current.style.transform = `translateX(${startX}px)`;
+          setPracticeAnim(false);
+          const newCount = snapCount + 1;
+          setPracticeCount(newCount);
+          setPracticeBonus(prev => Math.min(100, prev + getPracticeBonus(newCount)));
+        };
+        rafRef.current = requestAnimationFrame(returnTick);
+      }, 150);
     };
-    rafRef.current = requestAnimationFrame(tick);
+    rafRef.current = requestAnimationFrame(jumpTick);
   };
 
   const doRestart = () => {
