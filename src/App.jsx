@@ -943,7 +943,7 @@ function TreeGame() {
   const enterPractice = () => {
     if (anim !== "idle" || practiceAnim || practiceMode) return;
     const sceneW = sceneRef.current?.clientWidth ?? 740;
-    const backDist = sceneW * 0.12;
+    const backDist = sceneW * 0.22;
     setPracticeMode(true);
     setShowPracticeBar(true);
     const t0 = performance.now();
@@ -984,7 +984,7 @@ function TreeGame() {
     setPracticeAnim(true);
     const sceneW = sceneRef.current?.clientWidth ?? 740;
     const startX = practiceOffsetRef.current;
-    const travel = sceneW * 0.17;
+    const travel = sceneW * 0.22;
     const PPEAK = 110;
     const t0 = performance.now();
     const dur = 850;
@@ -1047,7 +1047,7 @@ function TreeGame() {
         <div className="tree-scene" ref={sceneRef}>
           <div className="tree-ground" />
           {showPracticeBar && (
-            <div className="pbar-wrap" style={{ left: "37%", bottom: "25px", height: "80px", width: "60px" }}>
+            <div className="pbar-wrap" style={{ left: "25%", bottom: "25px", height: "80px", width: "60px" }}>
               <div className="pbar-stand" style={{ left: 0 }} />
               <div className="pbar-stand" style={{ right: 0 }} />
               <div className="pbar-bar" />
