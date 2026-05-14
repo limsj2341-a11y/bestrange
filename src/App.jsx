@@ -828,9 +828,10 @@ function TreeGame() {
   const rafRef = useRef(null);
   const practiceTimeoutRef = useRef(null);
   const endingTimersRef = useRef([]);
+  const grandpaAscentRef = useRef(false);
 
   const cur = STAGES[stage];
-  const treeH = 40 + (cur.height - 1) * 22;
+  const treeH = 40 + (cur.height - 1) * 40;
   const PEAK_H = treeH + 55;
   const effectiveProb = Math.min(1.0, cur.prob + practiceBonus / 100);
 
@@ -842,6 +843,13 @@ function TreeGame() {
 
   useEffect(() => {
     if (anim !== "cleared") return;
+    if (grandpaAscentRef.current) {
+      grandpaAscentRef.current = false;
+      setEndingSeq(2);
+      const t3 = setTimeout(() => setEndingSeq(3), 1100);
+      endingTimersRef.current = [t3];
+      return () => clearTimeout(t3);
+    }
     const t1 = setTimeout(() => setEndingSeq(1), 500);
     const t2 = setTimeout(() => setEndingSeq(2), 2300);
     const t3 = setTimeout(() => setEndingSeq(3), 3400);
@@ -864,26 +872,42 @@ function TreeGame() {
       setAnim("jumping");
       setDeadStage(null);
       const sceneW = sceneRef.current?.clientWidth ?? 740;
-      const travel = sceneW * 0.70;
       const t0 = performance.now();
-      const dur = 1100;
-      const tick = (now) => {
-        const t = Math.min((now - t0) / dur, 1);
-        const x = t * travel;
-        const y = 4 * PEAK_H * t * (t - 1);
-        if (charRef.current) charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
-        if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
-        if (stage >= 5) {
+      if (stage >= 5) {
+        // 할아버지: 수직 상승으로 하늘로 사라짐
+        const sceneH = sceneRef.current?.clientHeight ?? 435;
+        const dur = 1000;
+        const tick = (now) => {
+          const t = Math.min((now - t0) / dur, 1);
+          const y = -(t * (sceneH + 100));
+          const op = t > 0.45 ? Math.max(0, 1 - (t - 0.45) / 0.55) : 1;
+          if (charRef.current) {
+            charRef.current.style.transform = `translateY(${y}px) scale(${1 + t * 0.2})`;
+            charRef.current.style.opacity = String(op);
+          }
+          if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+          if (charRef.current) { charRef.current.style.transform = ""; charRef.current.style.opacity = ""; }
+          grandpaAscentRef.current = true;
           setAnim("cleared");
-        } else {
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        const travel = sceneW * 0.55;
+        const dur = 1100;
+        const tick = (now) => {
+          const t = Math.min((now - t0) / dur, 1);
+          const x = t * travel;
+          const y = 4 * PEAK_H * t * (t - 1);
+          if (charRef.current) charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
+          if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
           setStage(s => s + 1);
           setPracticeCount(0);
           setPracticeBonus(0);
           setAnim("idle");
           if (charRef.current) charRef.current.style.transform = "";
-        }
-      };
-      rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      }
     } else {
       setAnim("failing");
       const t0 = performance.now();
@@ -911,7 +935,7 @@ function TreeGame() {
     setPracticeAnim(true);
     setShowPracticeBar(true);
     const sceneW = sceneRef.current?.clientWidth ?? 740;
-    const travel = sceneW * 0.28;
+    const travel = sceneW * 0.17;
     const PPEAK = 110;
     const t0 = performance.now();
     const dur = 850;
@@ -968,7 +992,7 @@ function TreeGame() {
         <div className="tree-scene" ref={sceneRef}>
           <div className="tree-ground" />
           {showPracticeBar && (
-            <div className="pbar-wrap" style={{ left: "30%", bottom: "25px", height: "80px", width: "60px" }}>
+            <div className="pbar-wrap" style={{ left: "40%", bottom: "25px", height: "80px", width: "60px" }}>
               <div className="pbar-stand" style={{ left: 0 }} />
               <div className="pbar-stand" style={{ right: 0 }} />
               <div className="pbar-bar" />
@@ -983,7 +1007,7 @@ function TreeGame() {
           </div>
           {anim !== "cleared" ? (
             <div className="tree-char" ref={charRef}>{cur.char}</div>
-          ) : endingSeq < 2 ? (
+          ) : !grandpaAscentRef.current && endingSeq < 2 ? (
             <div className={`tree-char tree-char-clear${endingSeq >= 1 ? " tree-char-ascending" : ""}`}>
               {STAGES[5].char}
             </div>
@@ -1951,13 +1975,13 @@ export default function App() {
         }
         .tree-char {
           position: absolute;
-          left: 15%;
+          left: 25%;
           bottom: 25px;
           font-size: 1.8rem;
           line-height: 1;
           will-change: transform;
         }
-        .tree-char-clear { left: auto; right: 15%; }
+        .tree-char-clear { left: auto; right: 20%; }
         .tree-dead-msg {
           color: #ff7070;
           font-family: "Playfair Display", serif;
@@ -2043,7 +2067,7 @@ export default function App() {
         }
         .tree-shoes {
           position: absolute;
-          right: 15%;
+          right: 20%;
           bottom: 25px;
           font-size: 1.8rem;
           line-height: 1;
