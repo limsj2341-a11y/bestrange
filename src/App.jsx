@@ -821,6 +821,7 @@ function TreeGame() {
   const [practiceBonus, setPracticeBonus] = useState(0);
   const [practiceAnim, setPracticeAnim] = useState(false);
   const [showPracticeBar, setShowPracticeBar] = useState(false);
+  const [practiceMode, setPracticeMode] = useState(false);
   const [endingSeq, setEndingSeq] = useState(0); // 0:landed 1:ascending 2:shoes 3:done
 
   const charRef = useRef(null);
@@ -829,6 +830,7 @@ function TreeGame() {
   const practiceTimeoutRef = useRef(null);
   const endingTimersRef = useRef([]);
   const grandpaAscentRef = useRef(false);
+  const practiceOffsetRef = useRef(0);
 
   const cur = STAGES[stage];
   const treeH = 40 + (cur.height - 1) * 40;
@@ -938,11 +940,50 @@ function TreeGame() {
     }
   };
 
-  const doPractice = () => {
-    if (anim !== "idle" || practiceAnim) return;
-    setPracticeAnim(true);
-    setShowPracticeBar(true);
+  const enterPractice = () => {
+    if (anim !== "idle" || practiceAnim || practiceMode) return;
     const sceneW = sceneRef.current?.clientWidth ?? 740;
+    const backDist = sceneW * 0.12;
+    setPracticeMode(true);
+    setShowPracticeBar(true);
+    const t0 = performance.now();
+    const dur = 280;
+    const tick = (now) => {
+      const t = Math.min((now - t0) / dur, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const x = -backDist * ease;
+      if (charRef.current) charRef.current.style.transform = `translateX(${x}px)`;
+      if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+      practiceOffsetRef.current = -backDist;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+
+  const exitPractice = () => {
+    if (practiceAnim) return;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const startX = practiceOffsetRef.current;
+    const t0 = performance.now();
+    const dur = 280;
+    const tick = (now) => {
+      const t = Math.min((now - t0) / dur, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      const x = startX * (1 - ease);
+      if (charRef.current) charRef.current.style.transform = `translateX(${x}px)`;
+      if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+      practiceOffsetRef.current = 0;
+      if (charRef.current) charRef.current.style.transform = "";
+      setShowPracticeBar(false);
+      setPracticeMode(false);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+
+  const doPractice = () => {
+    if (anim !== "idle" || practiceAnim || !practiceMode) return;
+    setPracticeAnim(true);
+    const sceneW = sceneRef.current?.clientWidth ?? 740;
+    const startX = practiceOffsetRef.current;
     const travel = sceneW * 0.17;
     const PPEAK = 110;
     const t0 = performance.now();
@@ -950,13 +991,12 @@ function TreeGame() {
     const snapCount = practiceCount;
     const tick = (now) => {
       const t = Math.min((now - t0) / dur, 1);
-      const x = t * travel;
+      const x = startX + travel * Math.sin(Math.PI * t);
       const y = 4 * PPEAK * t * (t - 1);
       if (charRef.current) charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
       if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
       practiceTimeoutRef.current = setTimeout(() => {
-        if (charRef.current) charRef.current.style.transform = "";
-        setShowPracticeBar(false);
+        if (charRef.current) charRef.current.style.transform = `translateX(${startX}px)`;
         setPracticeAnim(false);
         const newCount = snapCount + 1;
         const bonus = getPracticeBonus(newCount);
@@ -967,7 +1007,13 @@ function TreeGame() {
     rafRef.current = requestAnimationFrame(tick);
   };
 
-  const doRestart = () => setDeadStage(null);
+  const doRestart = () => {
+    setDeadStage(null);
+    setPracticeMode(false);
+    setShowPracticeBar(false);
+    practiceOffsetRef.current = 0;
+    if (charRef.current) charRef.current.style.transform = "";
+  };
 
   const doReset = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -979,9 +1025,11 @@ function TreeGame() {
     setPracticeBonus(0);
     setAnim("idle");
     setPracticeAnim(false);
+    setPracticeMode(false);
     setDeadStage(null);
     setShowPracticeBar(false);
     setEndingSeq(0);
+    practiceOffsetRef.current = 0;
     if (charRef.current) charRef.current.style.transform = "";
   };
 
@@ -999,7 +1047,7 @@ function TreeGame() {
         <div className="tree-scene" ref={sceneRef}>
           <div className="tree-ground" />
           {showPracticeBar && (
-            <div className="pbar-wrap" style={{ left: "50%", bottom: "25px", height: "80px", width: "60px" }}>
+            <div className="pbar-wrap" style={{ left: "37%", bottom: "25px", height: "80px", width: "60px" }}>
               <div className="pbar-stand" style={{ left: 0 }} />
               <div className="pbar-stand" style={{ right: 0 }} />
               <div className="pbar-bar" />
@@ -1034,11 +1082,11 @@ function TreeGame() {
         {anim !== "cleared" && (
           <div className="tree-practice-panel">
             <button
-              className="tree-practice-btn"
-              onClick={doPractice}
+              className={`tree-practice-btn${practiceMode ? " active" : ""}`}
+              onClick={practiceMode ? exitPractice : enterPractice}
               disabled={anim !== "idle" || practiceAnim}
             >
-              연습하기
+              {practiceMode ? "그만하기" : "연습하기"}
             </button>
             {practiceCount > 0 && (
               <>
@@ -1056,7 +1104,11 @@ function TreeGame() {
       ) : deadStage !== null ? (
         <div className="tree-dead-msg">💀 실패했다!</div>
       ) : anim === "idle" ? (
-        <button className="tree-btn" onClick={doAttempt} disabled={practiceAnim}>도전!</button>
+        practiceMode ? (
+          <button className="tree-btn tree-btn-practice" onClick={doPractice} disabled={practiceAnim}>연습!</button>
+        ) : (
+          <button className="tree-btn" onClick={doAttempt}>도전!</button>
+        )
       ) : null}
     </div>
   );
@@ -1897,6 +1949,8 @@ export default function App() {
           letter-spacing: 0.12em;
         }
         .tree-practice-btn:hover:not(:disabled) { background: linear-gradient(180deg, #2a5a2a, #1a3a1a); }
+        .tree-practice-btn.active { background: linear-gradient(180deg, #3a1a1a, #200d0d); color: #dd9090; border-color: rgba(200,100,100,0.4); }
+        .tree-practice-btn.active:hover:not(:disabled) { background: linear-gradient(180deg, #5a2a2a, #3a1a1a); }
         .tree-practice-btn:disabled { opacity: 0.38; cursor: default; }
         .tree-practice-combo {
           color: #90dd90;
@@ -2057,6 +2111,8 @@ export default function App() {
           margin-bottom: 8px;
         }
         .tree-btn:hover { background: linear-gradient(135deg, #6b1919, #2d0a0a); }
+        .tree-btn-practice { background: linear-gradient(135deg, #113333, #061d1d); color: #7addc8; border-color: rgba(76,201,180,0.55); }
+        .tree-btn-practice:hover { background: linear-gradient(135deg, #194f4f, #0d2d2d); }
         .tree-char-ascending {
           animation: tree-char-ascend 1.7s ease-in forwards;
         }
