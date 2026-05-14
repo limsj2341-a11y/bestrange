@@ -7,6 +7,12 @@ import {
 import HTMLFlipBook from "react-pageflip";
 import coverImg from "./assets/nana.png";
 import backCoverImg from "./assets/kaka.png";
+import charChild from "./assets/아이.png";
+import charTeen from "./assets/청소년.png";
+import charYoung from "./assets/청년.png";
+import charMiddle from "./assets/중년.png";
+import charOld from "./assets/노인.png";
+import charGrandpa from "./assets/할아버지.png";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -806,12 +812,12 @@ function NailGame() {
 // ==================== TREE GAME ====================
 function TreeGame() {
   const STAGES = [
-    { height: 1,  prob: 0.90, age: "아이",    char: "🧒" },
-    { height: 3,  prob: 0.80, age: "청소년",  char: "👦" },
-    { height: 5,  prob: 0.70, age: "청년",    char: "🧑" },
-    { height: 7,  prob: 0.50, age: "중년",    char: "👨" },
-    { height: 9,  prob: 0.40, age: "노인",    char: "🧓" },
-    { height: 10, prob: 0.30, age: "할아버지", char: "👴" },
+    { height: 1,  prob: 0.90, age: "아이",    char: charChild },
+    { height: 3,  prob: 0.80, age: "청소년",  char: charTeen },
+    { height: 5,  prob: 0.70, age: "청년",    char: charYoung },
+    { height: 7,  prob: 0.50, age: "중년",    char: charMiddle },
+    { height: 9,  prob: 0.40, age: "노인",    char: charOld },
+    { height: 10, prob: 0.30, age: "할아버지", char: charGrandpa },
   ];
 
   const [stage, setStage] = useState(0);
@@ -1074,10 +1080,10 @@ function TreeGame() {
             <div className="tree-trunk" />
           </div>
           {anim !== "cleared" ? (
-            <div className="tree-char" ref={charRef}>{cur.char}</div>
+            <div className="tree-char" ref={charRef}><img src={cur.char} alt="" /></div>
           ) : !grandpaAscentRef.current && endingSeq < 2 ? (
             <div className={`tree-char tree-char-clear${endingSeq >= 1 ? " tree-char-ascending" : ""}`}>
-              {STAGES[5].char}
+              <img src={STAGES[5].char} alt="" />
             </div>
           ) : null}
           {anim === "cleared" && endingSeq >= 2 && (
@@ -2051,9 +2057,14 @@ export default function App() {
           position: absolute;
           left: 35%;
           bottom: 25px;
-          font-size: 1.8rem;
-          line-height: 1;
+          width: 54px;
+          height: 54px;
           will-change: transform;
+        }
+        .tree-char img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
         }
         .tree-char-clear { left: auto; right: 30%; }
         .tree-dead-msg {
