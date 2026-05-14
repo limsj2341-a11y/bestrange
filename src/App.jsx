@@ -874,15 +874,23 @@ function TreeGame() {
       const sceneW = sceneRef.current?.clientWidth ?? 740;
       const t0 = performance.now();
       if (stage >= 5) {
-        // 할아버지: 수직 상승으로 하늘로 사라짐
-        const sceneH = sceneRef.current?.clientHeight ?? 435;
-        const dur = 1000;
+        // 할아버지: 나무 위쪽을 향해 점프 후 내려오지 않고 하늘로 사라짐
+        const travel = sceneW * 0.20; // 나무 방향으로 짧게 전진
+        const dur = 1050;
         const tick = (now) => {
           const t = Math.min((now - t0) / dur, 1);
-          const y = -(t * (sceneH + 100));
-          const op = t > 0.45 ? Math.max(0, 1 - (t - 0.45) / 0.55) : 1;
+          const x = t * travel;
+          let y, op;
+          if (t <= 0.5) {
+            y = -(4 * PEAK_H * t * (1 - t)); // 포물선 상승 절반
+            op = 1;
+          } else {
+            const t2 = (t - 0.5) / 0.5;
+            y = -PEAK_H - t2 * PEAK_H * 0.9; // 정점 이후 계속 상승
+            op = Math.max(0, 1 - t2);
+          }
           if (charRef.current) {
-            charRef.current.style.transform = `translateY(${y}px) scale(${1 + t * 0.2})`;
+            charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
             charRef.current.style.opacity = String(op);
           }
           if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
@@ -892,7 +900,7 @@ function TreeGame() {
         };
         rafRef.current = requestAnimationFrame(tick);
       } else {
-        const travel = sceneW * 0.55;
+        const travel = sceneW * 0.35;
         const dur = 1100;
         const tick = (now) => {
           const t = Math.min((now - t0) / dur, 1);
@@ -991,7 +999,7 @@ function TreeGame() {
         <div className="tree-scene" ref={sceneRef}>
           <div className="tree-ground" />
           {showPracticeBar && (
-            <div className="pbar-wrap" style={{ left: "40%", bottom: "25px", height: "80px", width: "60px" }}>
+            <div className="pbar-wrap" style={{ left: "50%", bottom: "25px", height: "80px", width: "60px" }}>
               <div className="pbar-stand" style={{ left: 0 }} />
               <div className="pbar-stand" style={{ right: 0 }} />
               <div className="pbar-bar" />
@@ -1974,13 +1982,13 @@ export default function App() {
         }
         .tree-char {
           position: absolute;
-          left: 25%;
+          left: 35%;
           bottom: 25px;
           font-size: 1.8rem;
           line-height: 1;
           will-change: transform;
         }
-        .tree-char-clear { left: auto; right: 20%; }
+        .tree-char-clear { left: auto; right: 30%; }
         .tree-dead-msg {
           color: #ff7070;
           font-family: "Playfair Display", serif;
@@ -2066,7 +2074,7 @@ export default function App() {
         }
         .tree-shoes {
           position: absolute;
-          right: 20%;
+          right: 30%;
           bottom: 25px;
           font-size: 1.8rem;
           line-height: 1;
