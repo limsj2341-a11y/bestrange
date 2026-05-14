@@ -72,6 +72,7 @@ const SPREADS = [
       type: "game",
       gameId: "game1",
       label: "게임 시작하기",
+      title: "노마처럼 못을 박아보자!",
     },
   },
 
@@ -260,6 +261,21 @@ const RightPage = forwardRef(
               gap: `${2 * zoom}rem`,
             }}
           >
+            {data.title && (
+              <h2
+                style={{
+                  fontFamily: '"Playfair Display", serif',
+                  color: C.cover,
+                  fontSize: `${1.7 * zoom}rem`,
+                  fontWeight: 700,
+                  textAlign: "center",
+                  margin: 0,
+                }}
+              >
+                {data.title}
+              </h2>
+            )}
+
             <div style={{ fontSize: `${5 * zoom}rem` }}>📖</div>
 
             <button
