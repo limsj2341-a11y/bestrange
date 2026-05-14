@@ -821,11 +821,13 @@ function TreeGame() {
   const [practiceBonus, setPracticeBonus] = useState(0);
   const [practiceAnim, setPracticeAnim] = useState(false);
   const [showPracticeBar, setShowPracticeBar] = useState(false);
+  const [endingSeq, setEndingSeq] = useState(0); // 0:landed 1:ascending 2:shoes 3:done
 
   const charRef = useRef(null);
   const sceneRef = useRef(null);
   const rafRef = useRef(null);
   const practiceTimeoutRef = useRef(null);
+  const endingTimersRef = useRef([]);
 
   const cur = STAGES[stage];
   const treeH = 40 + (cur.height - 1) * 22;
@@ -835,7 +837,17 @@ function TreeGame() {
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (practiceTimeoutRef.current) clearTimeout(practiceTimeoutRef.current);
+    endingTimersRef.current.forEach(clearTimeout);
   }, []);
+
+  useEffect(() => {
+    if (anim !== "cleared") return;
+    const t1 = setTimeout(() => setEndingSeq(1), 500);
+    const t2 = setTimeout(() => setEndingSeq(2), 2300);
+    const t3 = setTimeout(() => setEndingSeq(3), 3400);
+    endingTimersRef.current = [t1, t2, t3];
+    return () => [t1, t2, t3].forEach(clearTimeout);
+  }, [anim]);
 
   const getPracticeBonus = (n) => {
     if (n <= 2) return 1;
@@ -927,6 +939,8 @@ function TreeGame() {
   const doReset = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (practiceTimeoutRef.current) clearTimeout(practiceTimeoutRef.current);
+    endingTimersRef.current.forEach(clearTimeout);
+    endingTimersRef.current = [];
     setStage(0);
     setPracticeCount(0);
     setPracticeBonus(0);
@@ -934,6 +948,7 @@ function TreeGame() {
     setPracticeAnim(false);
     setShowFail(false);
     setShowPracticeBar(false);
+    setEndingSeq(0);
     if (charRef.current) charRef.current.style.transform = "";
   };
 
@@ -959,13 +974,21 @@ function TreeGame() {
             </div>
           )}
           <div className="tree-poplar" style={{ bottom: "25px", height: `${treeH + 20}px` }}>
-            <div className="tree-canopy" style={{ height: `${treeH}px` }} />
+            <div
+              className={`tree-canopy${anim === "cleared" && endingSeq >= 1 ? " tree-canopy-fade" : ""}`}
+              style={{ height: `${treeH}px` }}
+            />
             <div className="tree-trunk" />
           </div>
           {anim !== "cleared" ? (
             <div className="tree-char" ref={charRef}>{cur.char}</div>
-          ) : (
-            <div className="tree-char tree-char-clear">{STAGES[5].char}</div>
+          ) : endingSeq < 2 ? (
+            <div className={`tree-char tree-char-clear${endingSeq >= 1 ? " tree-char-ascending" : ""}`}>
+              {STAGES[5].char}
+            </div>
+          ) : null}
+          {anim === "cleared" && endingSeq >= 2 && (
+            <div className="tree-shoes">👟</div>
           )}
         </div>
         {anim !== "cleared" && (
@@ -989,9 +1012,8 @@ function TreeGame() {
       {showFail && anim === "idle" && (
         <div className="tree-fail-msg">💀 실패! 처음부터 다시...</div>
       )}
-      {anim === "cleared" ? (
+      {anim === "cleared" && endingSeq === 3 ? (
         <div className="tree-cleared-area">
-          <div className="tree-cleared-msg">🎉 전 단계 클리어!</div>
           <button className="tree-btn" onClick={doReset}>다시 하기</button>
         </div>
       ) : anim === "idle" ? (
@@ -1965,6 +1987,35 @@ export default function App() {
           margin-bottom: 8px;
         }
         .tree-btn:hover { background: linear-gradient(135deg, #6b1919, #2d0a0a); }
+        .tree-char-ascending {
+          animation: tree-char-ascend 1.7s ease-in forwards;
+        }
+        @keyframes tree-char-ascend {
+          0%   { transform: translateY(0) scale(1);    opacity: 1; }
+          25%  { transform: translateY(-60px) scale(1.15); opacity: 1; }
+          100% { transform: translateY(-420px) scale(0.5); opacity: 0; }
+        }
+        .tree-canopy-fade {
+          animation: tree-canopy-fade 1.7s ease-out forwards;
+        }
+        @keyframes tree-canopy-fade {
+          0%   { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        .tree-shoes {
+          position: absolute;
+          right: 15%;
+          bottom: 25px;
+          font-size: 1.8rem;
+          line-height: 1;
+          animation: tree-shoes-fall 1.0s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes tree-shoes-fall {
+          0%   { transform: translateY(-270px); opacity: 0; }
+          20%  { opacity: 1; }
+          82%  { transform: translateY(8px); }
+          100% { transform: translateY(0); }
+        }
 
       `}</style>
 
