@@ -981,7 +981,6 @@ function TreeGame() {
     <div className="tree-screen">
       <div className="tree-hud">
         <span className="tree-hud-stage">{stage + 1} / 6단계</span>
-        <span className="tree-hud-age">{cur.age}</span>
         <span className="tree-hud-height">🌲 {cur.height}m</span>
         <span className="tree-hud-prob">
           성공률 {Math.round(effectiveProb * 100)}%
