@@ -898,6 +898,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          -webkit-tap-highlight-color: transparent;
+          outline: none;
         }
         .vn-bg-overlay {
           position: absolute;
@@ -991,6 +993,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           font-family: "EB Garamond", serif;
           font-size: 0.96rem;
           cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
           text-align: left;
           transition: background 0.15s;
         }
@@ -1042,6 +1045,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           justify-content: center;
           gap: 28px;
           overflow: hidden;
+          -webkit-tap-highlight-color: transparent;
         }
         .vn-select-title {
           position: relative;
@@ -1074,6 +1078,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
           background: rgba(0,0,0,0.52);
           border: 1px solid rgba(160,100,255,0.4);
           border-radius: 10px;
+          -webkit-tap-highlight-color: transparent;
           cursor: pointer;
           transition: background 0.15s, border-color 0.15s, transform 0.12s;
         }
