@@ -559,7 +559,6 @@ function NailGame() {
     const cur = nailsRef.current;
     if (cur.some((n) => Math.hypot(n.x - x, n.y - y) < NAIL_MIN_DIST)) {
       if (!shaking) {
-        startTimeRef.current -= 50;
         missCountRef.current += 1;
         setMissCount(missCountRef.current);
       }
@@ -607,7 +606,7 @@ function NailGame() {
       setElapsed(ft);
       const gCount = updated.filter((n) => n.type === "golden").length;
       const mCount = updated.filter((n) => n.type === "mine").length;
-      const finalTime = Math.max(0, ft - gCount * 300 + mCount * 300);
+      const finalTime = Math.max(0, ft - gCount * 300 + mCount * 300 + missCountRef.current * 50);
       setEndingStats({ gCount, mCount, missCount: missCountRef.current, rawTime: ft, finalTime });
       supabase
         .from("rankings")
@@ -636,12 +635,6 @@ function NailGame() {
     setGoldenZone(null);
     setMineZones([]);
     setPhase("playing");
-  };
-
-  const calcFinalTime = (nailsArr, elapsedMs) => {
-    const g = nailsArr.filter((n) => n.type === "golden").length;
-    const m = nailsArr.filter((n) => n.type === "mine").length;
-    return Math.max(0, elapsedMs - g * 100 + m * 300);
   };
 
   const formatTime = (ms) => {
