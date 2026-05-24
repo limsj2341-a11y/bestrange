@@ -1926,6 +1926,7 @@ export default function App() {
           border-radius: 7px;
           background: rgba(255,255,255,0.07);
           color: #f5e8cc;
+          -webkit-tap-highlight-color: transparent;
           font-size: 0.95rem;
           width: 200px;
           outline: none;
@@ -1939,6 +1940,7 @@ export default function App() {
           background: linear-gradient(135deg, #4b1111, #1d0606);
           color: #ecd07a;
           border: 1px solid rgba(201,168,76,0.55);
+          -webkit-tap-highlight-color: transparent;
           border-radius: 7px;
           cursor: pointer;
           font-family: "Playfair Display", serif;
@@ -2051,6 +2053,7 @@ export default function App() {
         .nail-wall {
           flex: 1;
           position: relative;
+          -webkit-tap-highlight-color: transparent;
           background:
             repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(130,90,40,0.1) 39px, rgba(130,90,40,0.1) 40px),
             repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(130,90,40,0.07) 39px, rgba(130,90,40,0.07) 40px),
@@ -2420,6 +2423,7 @@ export default function App() {
           color: #ecd07a;
           border: 1px solid rgba(201,168,76,0.55);
           border-radius: 7px;
+          -webkit-tap-highlight-color: transparent;
           cursor: pointer;
           font-family: "Playfair Display", serif;
           font-size: 1rem;
