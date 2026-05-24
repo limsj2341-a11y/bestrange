@@ -316,6 +316,7 @@ const RightPage = forwardRef(
                 cursor: "pointer",
                 fontSize: `${1 * zoom}rem`,
                 fontFamily: '"Playfair Display", serif',
+                WebkitTapHighlightColor: "transparent",
               }}
               onClick={() => onStartGame(data.gameId)}
             >
@@ -1566,6 +1567,8 @@ function Book({ onStartGame, zoom }) {
             <button
               className="back-to-front-button"
               type="button"
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
               onPointerMove={(e) => e.stopPropagation()}
               onPointerUp={(e) => e.stopPropagation()}
@@ -1795,6 +1798,7 @@ export default function App() {
           border: 1px solid rgba(201, 168, 76, 0.78);
           border-radius: 8px;
           background: rgba(29, 6, 6, 0.88);
+          -webkit-tap-highlight-color: transparent;
           color: #ecd07a;
           cursor: pointer;
           font-family: "Playfair Display", serif;
@@ -2255,6 +2259,7 @@ export default function App() {
           font-size: 0.88rem;
           font-weight: 700;
           letter-spacing: 0.12em;
+          -webkit-tap-highlight-color: transparent;
         }
         .tree-practice-btn:hover:not(:disabled) { background: linear-gradient(180deg, #2a5a2a, #1a3a1a); }
         .tree-practice-btn.active { background: linear-gradient(180deg, #3a1a1a, #200d0d); color: #dd9090; border-color: rgba(200,100,100,0.4); }
