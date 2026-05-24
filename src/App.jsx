@@ -13,6 +13,12 @@ import charYoung from "./assets/청년.png";
 import charMiddle from "./assets/중년.png";
 import charOld from "./assets/노인.png";
 import charGrandpa from "./assets/할아버지.png";
+import vnBg from "./assets/벽돌.jpg";
+import shoeBlack from "./assets/검은구두.png";
+import shoeBrown from "./assets/갈색구두.png";
+import shoeSneaker from "./assets/운동화.png";
+import shoeBasket from "./assets/농구화.png";
+import shoeNurse from "./assets/간호사신발.png";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -85,14 +91,13 @@ const SPREADS = [
   {
     left: {
       type: "rules",
-      title: "포플러 나무 넘기",
+      title: "하는법",
       rules: [
-        "도전 버튼을 눌러 나무를 넘어라",
-        "성공하면 캐릭터가 나무를 뛰어넘는다",
-        "실패하면 낙사 — 1단계부터 다시 시작",
-        "6단계를 모두 성공하면 클리어!",
-        "단계가 높을수록 나무가 높아지고 캐릭터도 늙는다",
-        "1단계 성공률 90%, 6단계 성공률 30%",
+        "도전 버튼을 눌러 나무를 넘는다",
+        "성공하면 다음 단계로 넘어간다",
+        "실패하면 처음부터 다시 시작한다",
+        "연습하기 버튼을 누른 후 연습을 누르면 현재 단계 성공 확률이 올라가며 연속으로 누를수록 오르는 확률이 커진다",
+        "10m 나무를 넘으면 끝난다",
       ],
     },
 
@@ -100,7 +105,7 @@ const SPREADS = [
       type: "game",
       gameId: "ox",
       label: "게임 시작하기",
-      title: "포플러 나무를 넘어라!",
+      title: "포플러 나무를 넘어보자!",
     },
   },
 
@@ -120,9 +125,17 @@ const SPREADS = [
 
   {
     left: {
-      title: "낱말 게임",
-      content:
-        "흩어진 글자를 올바른 순서로 배열해 단어를 완성해 보세요.",
+      type: "rules",
+      title: "하는 법",
+      rules: [
+        "신발을 하나 골라 대화를 시작한다",
+        "화면 아무 곳이나 클릭하면 다음 대사로 넘어간다",
+        "선택지가 나오면 원하는 답을 고른다",
+        "선택에 따라 호감도가 오른다",
+        "선택에 틀리면 처음부터 대화해야한다",
+        "한 번 대화한 신발은 다시 선택할 수 없다",
+        "신발 3개를 대화를 통해 호감도 100점 채우면 끝난다",
+      ],
     },
 
     right: {
@@ -364,8 +377,9 @@ function NailGame() {
   const [goldenZone, setGoldenZone] = useState(null);
   const [mineZones, setMineZones] = useState([]);
   const [poppingIdx, setPoppingIdx] = useState(-1);
-  const [endingStats, setEndingStats] = useState({ gCount: 0, mCount: 0, rawTime: 0, finalTime: 0 });
+  const [endingStats, setEndingStats] = useState({ gCount: 0, mCount: 0, missCount: 0, rawTime: 0, finalTime: 0 });
   const [rankings, setRankings] = useState([]);
+  const [missCount, setMissCount] = useState(0);
 
   useEffect(() => {
     supabase
@@ -388,6 +402,7 @@ function NailGame() {
   const mineZoneRef = useRef([]);
   const goldenTimerRef = useRef(null);
   const nailIdRef = useRef(0);
+  const missCountRef = useRef(0);
 
   useEffect(() => { nailsRef.current = nails; }, [nails]);
   useEffect(() => { goldenZoneRef.current = goldenZone; }, [goldenZone]);
@@ -543,7 +558,11 @@ function NailGame() {
 
     const cur = nailsRef.current;
     if (cur.some((n) => Math.hypot(n.x - x, n.y - y) < NAIL_MIN_DIST)) {
-      if (!shaking) startTimeRef.current -= 50;
+      if (!shaking) {
+        startTimeRef.current -= 50;
+        missCountRef.current += 1;
+        setMissCount(missCountRef.current);
+      }
       return;
     }
 
@@ -589,7 +608,7 @@ function NailGame() {
       const gCount = updated.filter((n) => n.type === "golden").length;
       const mCount = updated.filter((n) => n.type === "mine").length;
       const finalTime = Math.max(0, ft - gCount * 300 + mCount * 300);
-      setEndingStats({ gCount, mCount, rawTime: ft, finalTime });
+      setEndingStats({ gCount, mCount, missCount: missCountRef.current, rawTime: ft, finalTime });
       supabase
         .from("rankings")
         .insert({ nickname, time: finalTime })
@@ -609,8 +628,10 @@ function NailGame() {
     if (!nickname.trim()) return;
     clearTimeout(goldenTimerRef.current);
     nailIdRef.current = 0;
+    missCountRef.current = 0;
     nailsRef.current = [];
     setNails([]);
+    setMissCount(0);
     setElapsed(0);
     setGoldenZone(null);
     setMineZones([]);
@@ -689,6 +710,11 @@ function NailGame() {
                   💣×{nails.filter((n) => n.type === "mine").length}
                 </span>
               )}
+              {missCount > 0 && (
+                <span className="nail-hud-badge nail-hud-badge-miss">
+                  실수×{missCount}
+                </span>
+              )}
             </div>
             {shakeAlert && <span className="nail-shake-alert">💥 흔들림!</span>}
             <span className={`nail-hud-timer${remaining < 10000 ? " nail-hud-timer-warn" : ""}`}>
@@ -745,7 +771,7 @@ function NailGame() {
   }
 
   if (phase === "done") {
-    const { gCount, mCount, rawTime, finalTime } = endingStats;
+    const { gCount, mCount, missCount: endMiss, rawTime, finalTime } = endingStats;
     const myRankIdx = rankings.findIndex(
       (r) => r.nickname === nickname && Math.abs(r.time - finalTime) < 50
     );
@@ -768,6 +794,12 @@ function NailGame() {
             <div className="nail-result-row">
               <span className="nail-result-label nail-result-mine">지뢰존 {mCount}개</span>
               <span className="nail-result-val nail-result-mine">+{(mCount * 0.3).toFixed(2)}초</span>
+            </div>
+          )}
+          {endMiss > 0 && (
+            <div className="nail-result-row">
+              <span className="nail-result-label nail-result-miss">실수 {endMiss}회</span>
+              <span className="nail-result-val nail-result-miss">+{(endMiss * 0.05).toFixed(2)}초</span>
             </div>
           )}
           <div className="nail-result-divider">──────────────</div>
@@ -829,6 +861,7 @@ function TreeGame() {
   const [showPracticeBar, setShowPracticeBar] = useState(false);
   const [practiceMode, setPracticeMode] = useState(false);
   const [endingSeq, setEndingSeq] = useState(0); // 0:landed 1:ascending 2:shoes 3:done
+  const [sceneZoom, setSceneZoom] = useState(false);
 
   const charRef = useRef(null);
   const sceneRef = useRef(null);
@@ -840,6 +873,7 @@ function TreeGame() {
 
   const cur = STAGES[stage];
   const treeH = 40 + (cur.height - 1) * 40;
+  const renderTreeH = stage >= 5 ? 600 : treeH;
   const PEAK_H = treeH + 55;
   const effectiveProb = Math.min(1.0, cur.prob + practiceBonus / 100);
 
@@ -852,11 +886,12 @@ function TreeGame() {
   useEffect(() => {
     if (anim !== "cleared") return;
     if (grandpaAscentRef.current) {
-      grandpaAscentRef.current = false;
-      setEndingSeq(2);
-      const t3 = setTimeout(() => setEndingSeq(3), 1100);
-      endingTimersRef.current = [t3];
-      return () => clearTimeout(t3);
+      setEndingSeq(1);
+      const t2 = setTimeout(() => setEndingSeq(2), 1500);
+      const tz = setTimeout(() => setSceneZoom(true), 1700);
+      const t3 = setTimeout(() => setEndingSeq(3), 2950);
+      endingTimersRef.current = [t2, tz, t3];
+      return () => [t2, tz, t3].forEach(clearTimeout);
     }
     const t1 = setTimeout(() => setEndingSeq(1), 500);
     const t2 = setTimeout(() => setEndingSeq(2), 2300);
@@ -882,19 +917,18 @@ function TreeGame() {
       const sceneW = sceneRef.current?.clientWidth ?? 740;
       const t0 = performance.now();
       if (stage >= 5) {
-        // 할아버지: 나무 위쪽을 향해 점프 후 내려오지 않고 하늘로 사라짐
-        const travel = sceneW * 0.20; // 나무 방향으로 짧게 전진
+        const travel = sceneW * 0.20;
         const dur = 1050;
         const tick = (now) => {
           const t = Math.min((now - t0) / dur, 1);
           const x = t * travel;
           let y, op;
           if (t <= 0.5) {
-            y = -(4 * PEAK_H * t * (1 - t)); // 포물선 상승 절반
+            y = -(4 * PEAK_H * t * (1 - t));
             op = 1;
           } else {
             const t2 = (t - 0.5) / 0.5;
-            y = -PEAK_H - t2 * PEAK_H * 0.9; // 정점 이후 계속 상승
+            y = -PEAK_H - t2 * PEAK_H * 0.9;
             op = Math.max(0, 1 - t2);
           }
           if (charRef.current) {
@@ -916,11 +950,11 @@ function TreeGame() {
           const y = 4 * PEAK_H * t * (t - 1);
           if (charRef.current) charRef.current.style.transform = `translateX(${x}px) translateY(${y}px)`;
           if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+          if (charRef.current) charRef.current.style.transform = "";
           setStage(s => s + 1);
           setPracticeCount(0);
           setPracticeBonus(0);
           setAnim("idle");
-          if (charRef.current) charRef.current.style.transform = "";
         };
         rafRef.current = requestAnimationFrame(tick);
       }
@@ -949,7 +983,7 @@ function TreeGame() {
   const enterPractice = () => {
     if (anim !== "idle" || practiceAnim || practiceMode) return;
     const sceneW = sceneRef.current?.clientWidth ?? 740;
-    const backDist = sceneW * 0.22;
+    const backDist = sceneW * 0.15;
     setPracticeMode(true);
     setShowPracticeBar(true);
     const t0 = performance.now();
@@ -1048,6 +1082,8 @@ function TreeGame() {
     setDeadStage(null);
     setShowPracticeBar(false);
     setEndingSeq(0);
+    setSceneZoom(false);
+    grandpaAscentRef.current = false;
     practiceOffsetRef.current = 0;
     if (charRef.current) charRef.current.style.transform = "";
   };
@@ -1063,7 +1099,7 @@ function TreeGame() {
         </span>
       </div>
       <div className="tree-main">
-        <div className="tree-scene" ref={sceneRef}>
+        <div className={`tree-scene${sceneZoom ? " tree-scene-zoom" : ""}`} ref={sceneRef}>
           <div className="tree-ground" />
           {showPracticeBar && (
             <div className="pbar-wrap" style={{ left: "25%", bottom: "25px", height: "80px", width: "60px" }}>
@@ -1072,10 +1108,29 @@ function TreeGame() {
               <div className="pbar-bar" />
             </div>
           )}
-          <div className="tree-poplar" style={{ bottom: "25px", height: `${treeH + 20}px` }}>
+          <div className="tree-poplar" style={{ bottom: "25px", height: `${renderTreeH + 20}px` }}>
+            <svg
+              style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "58px", height: `${renderTreeH}px`, pointerEvents: "none" }}
+              viewBox="0 0 42 100"
+              preserveAspectRatio="none"
+            >
+              <line x1="21" y1="0" x2="21" y2="100" stroke="#8b5e3c" strokeWidth="2.5" />
+              <line x1="21" y1="85" x2="3"  y2="62" stroke="#8b5e3c" strokeWidth="2" />
+              <line x1="21" y1="85" x2="39" y2="62" stroke="#8b5e3c" strokeWidth="2" />
+              <line x1="21" y1="68" x2="6"  y2="48" stroke="#8b5e3c" strokeWidth="1.6" />
+              <line x1="21" y1="68" x2="36" y2="48" stroke="#8b5e3c" strokeWidth="1.6" />
+              <line x1="21" y1="52" x2="9"  y2="36" stroke="#8b5e3c" strokeWidth="1.2" />
+              <line x1="21" y1="52" x2="33" y2="36" stroke="#8b5e3c" strokeWidth="1.2" />
+              <line x1="21" y1="37" x2="12" y2="25" stroke="#8b5e3c" strokeWidth="1" />
+              <line x1="21" y1="37" x2="30" y2="25" stroke="#8b5e3c" strokeWidth="1" />
+              <line x1="21" y1="23" x2="14" y2="14" stroke="#8b5e3c" strokeWidth="0.8" />
+              <line x1="21" y1="23" x2="28" y2="14" stroke="#8b5e3c" strokeWidth="0.8" />
+              <line x1="21" y1="12" x2="16" y2="5"  stroke="#8b5e3c" strokeWidth="0.6" />
+              <line x1="21" y1="12" x2="26" y2="5"  stroke="#8b5e3c" strokeWidth="0.6" />
+            </svg>
             <div
               className={`tree-canopy${anim === "cleared" && endingSeq >= 1 ? " tree-canopy-fade" : ""}`}
-              style={{ height: `${treeH}px` }}
+              style={{ height: `${renderTreeH}px` }}
             />
             <div className="tree-trunk" />
           </div>
@@ -1133,27 +1188,220 @@ function TreeGame() {
   );
 }
 
+// ==================== VISUAL NOVEL GAME ====================
+const VN_SHOES = [
+  { id: "black",   img: shoeBlack,   label: "방금산구두" },
+  { id: "brown",   img: shoeBrown,   label: "오래된구두" },
+  { id: "nurse",   img: shoeNurse,   label: "이쁜이구두" },
+  { id: "sneaker", img: shoeSneaker, label: "멋쟁이운동화" },
+  { id: "basket",  img: shoeBasket,  label: "깨끗한농구화" },
+];
+
+// char 값은 신발 id (black/brown/sneaker/basket/nurse)
+const VN_SCRIPT = {
+  black_0:   { char: "black",   text: "...(검은 구두 선택 시 대사)", next: "end" },
+  brown_0:   { char: "brown",   text: "...(갈색 구두 선택 시 대사)", next: "end" },
+  sneaker_0: { char: "sneaker", text: "...(운동화 선택 시 대사)", next: "end" },
+  basket_0:  { char: "basket",  text: "...(농구화 선택 시 대사)", next: "end" },
+  nurse_0:   { char: "nurse",   text: "...(간호사 신발 선택 시 대사)", next: "end" },
+  end: { type: "end" },
+};
+
+function VisualNovelGame() {
+  const [selectedShoe, setSelectedShoe] = useState(null);
+  const [sceneId, setSceneId] = useState(null);
+  const [displayed, setDisplayed] = useState("");
+  const [typing, setTyping] = useState(false);
+  const [doneShoes, setDoneShoes] = useState(new Set());
+  const [showFinalEnd, setShowFinalEnd] = useState(false);
+  const [favor, setFavor] = useState(0);
+  const timerRef = useRef(null);
+
+  const scene = VN_SCRIPT[sceneId];
+  const fullText = scene?.text ?? "";
+
+  useEffect(() => {
+    if (!sceneId || !scene || scene.type === "end") return;
+    setDisplayed("");
+    setTyping(true);
+    let i = 0;
+    const tick = () => {
+      i++;
+      setDisplayed(fullText.slice(0, i));
+      if (i < fullText.length) {
+        timerRef.current = setTimeout(tick, 38);
+      } else {
+        setTyping(false);
+      }
+    };
+    timerRef.current = setTimeout(tick, 38);
+    return () => clearTimeout(timerRef.current);
+  }, [sceneId]);
+
+  const advance = (nextId, favorDelta = 0) => {
+    clearTimeout(timerRef.current);
+    if (typing) {
+      setDisplayed(fullText);
+      setTyping(false);
+      return;
+    }
+    if (favorDelta !== 0) {
+      setFavor((f) => Math.min(100, Math.max(0, f + favorDelta)));
+    }
+    const target = nextId ?? "end";
+    if (target === "end") {
+      const next = new Set(doneShoes).add(selectedShoe.id);
+      setDoneShoes(next);
+      if (next.size >= 3) {
+        setShowFinalEnd(true);
+      } else {
+        setSelectedShoe(null);
+        setSceneId(null);
+        setDisplayed("");
+      }
+    } else {
+      setSceneId(target);
+    }
+  };
+
+  const startWithShoe = (shoe) => {
+    setSelectedShoe(shoe);
+    setSceneId(`${shoe.id}_0`);
+    setFavor(0);
+  };
+
+  const restart = () => {
+    clearTimeout(timerRef.current);
+    setSelectedShoe(null);
+    setSceneId(null);
+    setDisplayed("");
+    setTyping(false);
+    setDoneShoes(new Set());
+    setShowFinalEnd(false);
+  };
+
+  // 최종 END 화면 (3개 완료)
+  if (showFinalEnd) {
+    return (
+      <div className="vn-end" style={{ backgroundImage: `url(${vnBg})` }}>
+        <div className="vn-bg-overlay" />
+        <div className="vn-end-icon" style={{ position: "relative", zIndex: 1 }}>✦</div>
+        <div className="vn-end-title" style={{ position: "relative", zIndex: 1 }}>END</div>
+        <button className="vn-btn" style={{ position: "relative", zIndex: 1 }} onClick={restart}>처음부터</button>
+      </div>
+    );
+  }
+
+  // 신발 선택 화면
+  if (!selectedShoe) {
+    return (
+      <div className="vn-select-wrap" style={{ backgroundImage: `url(${vnBg})` }}>
+        <div className="vn-bg-overlay" />
+        <div className="vn-select-title">
+          친해질 신발을 골라보자! ({doneShoes.size} / 3)
+        </div>
+        <div className="vn-shoe-grid">
+          {VN_SHOES.map((shoe) => (
+            <button
+              key={shoe.id}
+              className={`vn-shoe-btn${doneShoes.has(shoe.id) ? " vn-shoe-done" : ""}`}
+              onClick={() => !doneShoes.has(shoe.id) && startWithShoe(shoe)}
+            >
+              <img src={shoe.img} alt={shoe.label} className="vn-shoe-img" />
+              <span className="vn-shoe-label">
+                {doneShoes.has(shoe.id) ? "✓ " : ""}{shoe.label.slice(0, 3)}<br />{shoe.label.slice(3)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const shoeData = VN_SHOES.find((s) => s.id === scene.char);
+  const charImg = shoeData?.img;
+  const charName = shoeData?.label ?? scene.char;
+  const hasChoices = !typing && scene.choices?.length > 0;
+
+  return (
+    <div
+      className="vn-wrap"
+      style={{ backgroundImage: `url(${vnBg})`, cursor: hasChoices ? "default" : "pointer" }}
+      onClick={!hasChoices ? () => advance(scene.next) : undefined}
+    >
+      <div className="vn-bg-overlay" />
+
+      <div className="vn-favor-box">
+        <span className="vn-favor-label">호감도</span>
+        <div className="vn-favor-track">
+          <div
+            className="vn-favor-fill"
+            style={{
+              width: `${favor}%`,
+              background: favor >= 70
+                ? "linear-gradient(90deg, #ff8fbc, #ff5090)"
+                : favor >= 40
+                  ? "linear-gradient(90deg, #c8a8ff, #9060e0)"
+                  : "linear-gradient(90deg, #6090c0, #3060a0)",
+            }}
+          />
+        </div>
+        <span className="vn-favor-num">{favor}</span>
+      </div>
+
+      {charImg && (
+        <div className="vn-char-wrap">
+          <img className="vn-char-img" src={charImg} alt={scene.char} />
+        </div>
+      )}
+
+      <div className="vn-textbox">
+        <div className="vn-name">{charName}</div>
+        <div className="vn-text">
+          {displayed}
+          {typing && <span className="vn-cursor">▌</span>}
+        </div>
+        {hasChoices && (
+          <div className="vn-choices">
+            {scene.choices.map((c, i) => (
+              <button key={i} className="vn-choice-btn" onClick={(e) => { e.stopPropagation(); advance(c.next, c.favor ?? 0); }}>
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {!hasChoices && !typing && (
+          <div className="vn-next-arrow">▶</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ==================== GAME MODAL ====================
 const GAME_LABELS = {
   game1: "못 박기",
   ox: "포플러 나무 넘기",
   memory: "카드 맞추기",
-  word: "낱말 게임",
+  word: "신발과 친해지기",
 };
 
-function GameModal({ gameId, onClose }) {
+function GameModal({ gameId, onClose, zoom = 1 }) {
+  const panelW = Math.round(467 * zoom) * 2;
+  const panelH = Math.round(660 * zoom);
   return (
     <div className="game-modal-overlay">
-      <div className="game-modal-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="game-modal-panel" style={{ width: panelW, height: panelH }} onClick={(e) => e.stopPropagation()}>
         <div className="game-modal-header">
           <span className="game-modal-title">
             {GAME_LABELS[gameId] ?? gameId}
           </span>
           <button className="game-modal-close" onClick={onClose}>✕</button>
         </div>
-        <div className="game-modal-body" style={(gameId === "game1" || gameId === "ox") ? { padding: 0 } : {}}>
+        <div className="game-modal-body" style={(gameId === "game1" || gameId === "ox" || gameId === "word") ? { padding: 0 } : {}}>
           {gameId === "game1" && <NailGame />}
           {gameId === "ox" && <TreeGame />}
+          {gameId === "word" && <VisualNovelGame />}
         </div>
       </div>
     </div>
@@ -1199,6 +1447,9 @@ function Book({ onStartGame, zoom }) {
     flipBookRef.current?.pageFlip()?.turnToPage(0);
     setCurrentPage(0);
   };
+
+  const goPrevPage = () => flipBookRef.current?.pageFlip()?.flipPrev();
+  const goNextPage = () => flipBookRef.current?.pageFlip()?.flipNext();
 
   return (
     <div
@@ -1254,6 +1505,25 @@ function Book({ onStartGame, zoom }) {
           key="back-cover"
         />
       </HTMLFlipBook>
+
+      {isBookReady && !showGoFirstButton && currentPage > 0 && (
+        <button
+          className="book-nav-btn"
+          onClick={goPrevPage}
+          style={{ left: `calc(50% - ${pageWidth}px - 52px)` }}
+        >
+          ◀
+        </button>
+      )}
+      {isBookReady && !showGoFirstButton && currentPage < backCoverPageIndex && (
+        <button
+          className="book-nav-btn"
+          onClick={goNextPage}
+          style={{ left: `calc(50% + ${pageWidth}px + 12px)` }}
+        >
+          ▶
+        </button>
+      )}
 
       {(!isBookReady || showGoFirstButton) && (
         <div
@@ -1543,6 +1813,29 @@ export default function App() {
           background: rgba(75, 17, 17, 0.94);
         }
 
+        .book-nav-btn {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 42px;
+          height: 42px;
+          background: rgba(0, 0, 0, 0.82);
+          border: none;
+          border-radius: 50%;
+          color: #ffffff;
+          font-size: 1rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.32);
+          transition: background 0.15s;
+        }
+        .book-nav-btn:hover {
+          background: rgba(30, 30, 30, 0.95);
+        }
+
         .game-modal-overlay {
           position: fixed;
           inset: 0;
@@ -1560,8 +1853,6 @@ export default function App() {
           border: 1px solid rgba(201, 168, 76, 0.5);
           border-radius: 12px;
           box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
-          width: min(820px, 90vw);
-          height: min(580px, 85vh);
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -1888,6 +2179,8 @@ export default function App() {
         }
         .nail-hud-badge-gold { background: rgba(80,160,255,0.2); color: #80c0ff; }
         .nail-hud-badge-mine { background: rgba(255,80,80,0.18); color: #ff7070; }
+        .nail-hud-badge-miss { background: rgba(255,180,0,0.18); color: #ffcc44; }
+        .nail-result-miss { color: #ffcc44; }
 
         .nail-zone {
           position: absolute;
@@ -2022,6 +2315,11 @@ export default function App() {
           flex: 1;
           overflow: hidden;
           background: linear-gradient(to bottom, #87ceeb 0%, #b8d9f0 60%, #c8dea8 100%);
+          transition: transform 1.2s cubic-bezier(0.33, 1, 0.68, 1);
+          transform-origin: 70% 96%;
+        }
+        .tree-scene-zoom {
+          transform: scale(2.8);
         }
         .tree-ground {
           position: absolute;
@@ -2038,27 +2336,29 @@ export default function App() {
           flex-direction: column;
           align-items: center;
           justify-content: flex-end;
-          width: 48px;
+          width: 64px;
         }
         .tree-canopy {
-          width: 42px;
+          width: 58px;
           background: linear-gradient(to bottom, #1a5c2a, #2d8a44 50%, #1a5c2a);
           border-radius: 50%;
           flex-shrink: 0;
+          position: relative;
+          z-index: 1;
         }
         .tree-trunk {
-          width: 10px;
-          height: 20px;
+          width: 14px;
+          height: 26px;
           background: linear-gradient(to right, #8b5e3c, #6b4423);
           border-radius: 2px;
           flex-shrink: 0;
         }
         .tree-char {
           position: absolute;
-          left: 35%;
+          left: 28%;
           bottom: 25px;
-          width: 54px;
-          height: 54px;
+          width: 72px;
+          height: 72px;
           will-change: transform;
         }
         .tree-char img {
@@ -2167,6 +2467,265 @@ export default function App() {
           100% { transform: translateY(0); }
         }
 
+        /* ---- VISUAL NOVEL GAME ---- */
+        .vn-wrap {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          background-size: cover;
+          background-position: center;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .vn-bg-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          pointer-events: none;
+          z-index: 0;
+        }
+        .vn-char-wrap {
+          flex: 1;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          min-height: 0;
+          position: relative;
+          z-index: 1;
+        }
+        .vn-char-img {
+          height: 72%;
+          max-height: 300px;
+          object-fit: contain;
+          display: block;
+          filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+          pointer-events: none;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+        .vn-textbox {
+          position: relative;
+          z-index: 2;
+          background: linear-gradient(180deg, rgba(0,0,0,0.72), rgba(0,0,0,0.88));
+          border-top: 1px solid rgba(160,120,255,0.3);
+          padding: 18px 24px 16px;
+          min-height: 140px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+        .vn-name {
+          font-family: "Playfair Display", serif;
+          font-size: 0.92rem;
+          font-weight: 700;
+          color: #c8a8ff;
+          background: rgba(160,100,255,0.18);
+          border: 1px solid rgba(160,100,255,0.35);
+          border-radius: 4px;
+          padding: 2px 10px;
+          display: inline-block;
+          align-self: flex-start;
+        }
+        .vn-text {
+          font-family: "EB Garamond", serif;
+          font-size: 1.05rem;
+          line-height: 1.8;
+          color: #f0eaff;
+          min-height: 60px;
+        }
+        .vn-cursor {
+          animation: vn-blink 0.7s step-end infinite;
+          color: #c8a8ff;
+        }
+        @keyframes vn-blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0; }
+        }
+        .vn-next-arrow {
+          position: absolute;
+          bottom: 14px;
+          right: 20px;
+          color: #c8a8ff;
+          font-size: 0.8rem;
+          animation: vn-bounce 0.9s ease-in-out infinite alternate;
+        }
+        @keyframes vn-bounce {
+          from { transform: translateX(0); }
+          to   { transform: translateX(5px); }
+        }
+        .vn-choices {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 4px;
+        }
+        .vn-choice-btn {
+          padding: 9px 18px;
+          background: rgba(100,60,200,0.22);
+          border: 1px solid rgba(160,100,255,0.5);
+          border-radius: 6px;
+          color: #e8d8ff;
+          font-family: "EB Garamond", serif;
+          font-size: 0.96rem;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.15s;
+        }
+        .vn-choice-btn:hover {
+          background: rgba(130,80,240,0.38);
+          border-color: rgba(180,130,255,0.8);
+        }
+        .vn-end {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          background-size: cover;
+          background-position: center;
+        }
+        .vn-end-icon { font-size: 2.5rem; color: #c8a8ff; }
+        .vn-end-title {
+          font-family: "Playfair Display", serif;
+          font-size: 2rem;
+          font-weight: 700;
+          color: #e8d8ff;
+          letter-spacing: 0.3em;
+        }
+        .vn-btn {
+          padding: 10px 28px;
+          background: rgba(100,60,200,0.3);
+          border: 1px solid rgba(160,100,255,0.55);
+          border-radius: 7px;
+          color: #e8d8ff;
+          font-family: "Playfair Display", serif;
+          font-size: 0.95rem;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .vn-btn:hover { background: rgba(130,80,240,0.45); }
+
+        .vn-select-wrap {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          background-size: cover;
+          background-position: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 28px;
+          overflow: hidden;
+        }
+        .vn-select-title {
+          position: relative;
+          z-index: 1;
+          font-family: "Playfair Display", serif;
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: #f0eaff;
+          letter-spacing: 0.08em;
+          text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+        }
+        .vn-shoe-grid {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 18px;
+          padding: 0 24px;
+          max-width: 420px;
+          max-width: 700px;
+        }
+        .vn-shoe-btn {
+          width: 116px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          padding: 16px 20px;
+          background: rgba(0,0,0,0.52);
+          border: 1px solid rgba(160,100,255,0.4);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: background 0.15s, border-color 0.15s, transform 0.12s;
+        }
+        .vn-shoe-btn:hover {
+          background: rgba(100,60,200,0.38);
+          border-color: rgba(180,130,255,0.85);
+          transform: translateY(-4px);
+        }
+        .vn-shoe-img {
+          width: 80px;
+          height: 60px;
+          object-fit: contain;
+          filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+          pointer-events: none;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+        .vn-shoe-label {
+          font-family: "EB Garamond", serif;
+          font-size: 0.88rem;
+          color: #e8d8ff;
+        }
+        .vn-shoe-done {
+          opacity: 0.4;
+          cursor: default;
+          border-color: rgba(160,100,255,0.15);
+        }
+        .vn-shoe-done:hover {
+          background: rgba(0,0,0,0.52);
+          border-color: rgba(160,100,255,0.15);
+          transform: none;
+        }
+
+        .vn-favor-box {
+          position: absolute;
+          top: 14px;
+          right: 16px;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          background: rgba(0,0,0,0.55);
+          border: 1px solid rgba(160,100,255,0.35);
+          border-radius: 20px;
+          padding: 5px 12px 5px 10px;
+          pointer-events: none;
+        }
+        .vn-favor-label {
+          font-family: "EB Garamond", serif;
+          font-size: 0.78rem;
+          color: #c8a8ff;
+          white-space: nowrap;
+        }
+        .vn-favor-track {
+          width: 90px;
+          height: 7px;
+          background: rgba(255,255,255,0.12);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        .vn-favor-fill {
+          height: 100%;
+          border-radius: 4px;
+          transition: width 0.4s ease, background 0.4s ease;
+        }
+        .vn-favor-num {
+          font-family: monospace;
+          font-size: 0.78rem;
+          color: #e8d8ff;
+          min-width: 22px;
+          text-align: right;
+        }
+
       `}</style>
 
       <div className="zoom-controls" aria-label="zoom controls">
@@ -2204,7 +2763,7 @@ export default function App() {
       </div>
 
       {activeGame && (
-        <GameModal gameId={activeGame} onClose={() => setActiveGame(null)} />
+        <GameModal gameId={activeGame} onClose={() => setActiveGame(null)} zoom={zoom} />
       )}
     </div>
   );
