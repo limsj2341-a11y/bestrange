@@ -552,10 +552,13 @@ function NailGame() {
   const handleWallClick = (e) => {
     if (phase !== "playing") return;
     const rect = wallRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scale = rect.width / wallRef.current.offsetWidth;
+    const x = (e.clientX - rect.left) / scale;
+    const y = (e.clientY - rect.top) / scale;
     const r = NAIL_MIN_DIST / 2;
-    if (x < r || y < r || x > rect.width - r || y > rect.height - r) return;
+    const logicalW = wallRef.current.offsetWidth;
+    const logicalH = wallRef.current.offsetHeight;
+    if (x < r || y < r || x > logicalW - r || y > logicalH - r) return;
 
     const cur = nailsRef.current;
     if (cur.some((n) => Math.hypot(n.x - x, n.y - y) < NAIL_MIN_DIST)) {
@@ -1381,11 +1384,13 @@ const GAME_LABELS = {
 };
 
 function GameModal({ gameId, onClose, zoom = 1 }) {
-  const panelW = Math.round(467 * zoom) * 2;
-  const panelH = Math.round(660 * zoom);
   return (
     <div className="game-modal-overlay">
-      <div className="game-modal-panel" style={{ width: panelW, height: panelH }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="game-modal-panel"
+        style={{ width: 934, height: 660, transform: `scale(${zoom})`, transformOrigin: "center center" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="game-modal-header">
           <span className="game-modal-title">
             {GAME_LABELS[gameId] ?? gameId}
@@ -1598,8 +1603,9 @@ function Book({ onStartGame, zoom }) {
 export default function App() {
   useGoogleFonts();
   const [activeGame, setActiveGame] = useState(null);
-  const [zoom, setZoom] = useState(1);
-  const [zoomInput, setZoomInput] = useState("100");
+  const initialZoom = Math.max(0.4, Math.min(2, (window.innerWidth - 96) / (467 * 2), (window.innerHeight - 96) / 660));
+  const [zoom, setZoom] = useState(initialZoom);
+  const [zoomInput, setZoomInput] = useState(String(Math.round(initialZoom * 100)));
   const [viewport, setViewport] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -1634,7 +1640,7 @@ export default function App() {
     setZoom((value) =>
       Math.min(maxSafeZoom, Number((value + 0.1).toFixed(2)))
     );
-  const resetZoom = () => setZoom(1);
+  const resetZoom = () => setZoom(maxSafeZoom);
   const applyZoomInput = () => {
     const parsedValue = Number(zoomInput);
 
