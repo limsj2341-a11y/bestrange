@@ -1386,9 +1386,10 @@ const GAME_LABELS = {
 function GameModal({ gameId, onClose, zoom = 1 }) {
   return (
     <div className="game-modal-overlay">
+      <div style={{ width: 934 * zoom, height: 660 * zoom, flexShrink: 0 }}>
       <div
         className="game-modal-panel"
-        style={{ width: 934, height: 660, transform: `scale(${zoom})`, transformOrigin: "center center" }}
+        style={{ width: 934, height: 660, transform: `scale(${zoom})`, transformOrigin: "top left" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="game-modal-header">
@@ -1402,6 +1403,7 @@ function GameModal({ gameId, onClose, zoom = 1 }) {
           {gameId === "ox" && <TreeGame />}
           {gameId === "word" && <VisualNovelGame />}
         </div>
+      </div>
       </div>
     </div>
   );
