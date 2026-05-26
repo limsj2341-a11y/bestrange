@@ -111,15 +111,22 @@ const SPREADS = [
 
   {
     left: {
-      title: "카드 뒤집기",
-      content:
-        "같은 그림의 카드를 찾아 짝을 맞춰보세요.",
+      type: "rules",
+      title: "하는 법",
+      rules: [
+        "난이도를 고른다 (쉬움 / 보통 / 어려움)",
+        "문제를 읽고 4개의 보기 중 하나를 고른다",
+        "정답이면 초록색, 오답이면 빨간색으로 표시된다",
+        "마지막에 몇 문제를 맞췄는지 확인할 수 있다",
+        "다시 도전하려면 다시하기 버튼을 누른다",
+      ],
     },
 
     right: {
       type: "game",
       gameId: "memory",
       label: "게임 시작하기",
+      title: "중간퀴즈를 풀어보자!",
     },
   },
 
@@ -1375,11 +1382,139 @@ function VisualNovelGame() {
   );
 }
 
+// ==================== QUIZ GAME ====================
+const QUIZ_QUESTIONS = {
+  easy: [
+    { q: "[쉬움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
+    { q: "[쉬움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
+    { q: "[쉬움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
+    { q: "[쉬움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
+    { q: "[쉬움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
+  ],
+  normal: [
+    { q: "[보통 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
+    { q: "[보통 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
+    { q: "[보통 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
+    { q: "[보통 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
+    { q: "[보통 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
+    { q: "[보통 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
+    { q: "[보통 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
+  ],
+  hard: [
+    { q: "[어려움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
+    { q: "[어려움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
+    { q: "[어려움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
+    { q: "[어려움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
+    { q: "[어려움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
+    { q: "[어려움 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
+    { q: "[어려움 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
+    { q: "[어려움 문제 8 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
+    { q: "[어려움 문제 9 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
+    { q: "[어려움 문제 10 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
+  ],
+};
+
+function QuizGame() {
+  const [phase, setPhase] = useState("difficulty");
+  const [questions, setQuestions] = useState([]);
+  const [currentQ, setCurrentQ] = useState(0);
+  const [score, setScore] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [locked, setLocked] = useState(false);
+
+  const startGame = (diff) => {
+    setQuestions([...QUIZ_QUESTIONS[diff]]);
+    setCurrentQ(0);
+    setScore(0);
+    setPicked(null);
+    setLocked(false);
+    setPhase("playing");
+  };
+
+  const handleAnswer = (idx) => {
+    if (locked) return;
+    setLocked(true);
+    setPicked(idx);
+    if (idx === questions[currentQ].answer) setScore((s) => s + 1);
+    setTimeout(() => {
+      if (currentQ + 1 >= questions.length) {
+        setPhase("result");
+      } else {
+        setCurrentQ((q) => q + 1);
+        setPicked(null);
+        setLocked(false);
+      }
+    }, 900);
+  };
+
+  if (phase === "difficulty") {
+    return (
+      <div className="quiz-wrap">
+        <div className="quiz-diff-title">난이도를 골라주세요</div>
+        <div className="quiz-diff-btns">
+          {[
+            { key: "easy",   label: "쉬움",   color: "#4ade80", count: QUIZ_QUESTIONS.easy.length },
+            { key: "normal", label: "보통",   color: "#facc15", count: QUIZ_QUESTIONS.normal.length },
+            { key: "hard",   label: "어려움", color: "#f87171", count: QUIZ_QUESTIONS.hard.length },
+          ].map((d) => (
+            <button
+              key={d.key}
+              className="quiz-diff-btn"
+              style={{ "--diff-color": d.color }}
+              onClick={() => startGame(d.key)}
+            >
+              <span className="quiz-diff-label">{d.label}</span>
+              <span className="quiz-diff-desc">{d.count}문제</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "result") {
+    const total = questions.length;
+    const pct = Math.round((score / total) * 100);
+    const msg = pct === 100 ? "완벽해!" : pct >= 80 ? "잘했어!" : pct >= 60 ? "괜찮아!" : "다시 도전해보자!";
+    return (
+      <div className="quiz-wrap">
+        <div className="quiz-result-title">결과</div>
+        <div className="quiz-result-score">{score} / {total}</div>
+        <div className="quiz-result-pct">{pct}점</div>
+        <div className="quiz-result-msg">{msg}</div>
+        <button className="quiz-retry-btn" onClick={() => setPhase("difficulty")}>다시하기</button>
+      </div>
+    );
+  }
+
+  const q = questions[currentQ];
+  return (
+    <div className="quiz-wrap">
+      <div className="quiz-progress">{currentQ + 1} / {questions.length}</div>
+      <div className="quiz-question">{q.q}</div>
+      <div className="quiz-options">
+        {q.options.map((opt, i) => {
+          let cls = "quiz-opt-btn";
+          if (picked !== null) {
+            if (i === q.answer) cls += " correct";
+            else if (i === picked) cls += " wrong";
+          }
+          return (
+            <button key={i} className={cls} onClick={() => handleAnswer(i)}>
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ==================== GAME MODAL ====================
 const GAME_LABELS = {
   game1: "못 박기",
   ox: "포플러 나무 넘기",
-  memory: "카드 맞추기",
+  memory: "중간퀴즈",
   word: "신발과 친해지기",
 };
 
@@ -1398,9 +1533,10 @@ function GameModal({ gameId, onClose, zoom = 1 }) {
           </span>
           <button className="game-modal-close" onClick={onClose}>✕</button>
         </div>
-        <div className="game-modal-body" style={(gameId === "game1" || gameId === "ox" || gameId === "word") ? { padding: 0 } : {}}>
+        <div className="game-modal-body" style={(gameId === "game1" || gameId === "ox" || gameId === "word" || gameId === "memory") ? { padding: 0 } : {}}>
           {gameId === "game1" && <NailGame />}
           {gameId === "ox" && <TreeGame />}
+          {gameId === "memory" && <QuizGame />}
           {gameId === "word" && <VisualNovelGame />}
         </div>
       </div>
@@ -2739,6 +2875,143 @@ export default function App() {
           color: #e8d8ff;
           min-width: 22px;
           text-align: right;
+        }
+
+        /* ---- QUIZ GAME ---- */
+        .quiz-wrap {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          padding: 32px;
+          box-sizing: border-box;
+          background: #1a0e08;
+          color: #f5e8cc;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .quiz-diff-title {
+          font-family: "Playfair Display", serif;
+          font-size: 1.8rem;
+          color: #ecd07a;
+        }
+        .quiz-diff-btns {
+          display: flex;
+          gap: 20px;
+        }
+        .quiz-diff-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          padding: 20px 32px;
+          border: 2px solid var(--diff-color);
+          border-radius: 12px;
+          background: transparent;
+          color: var(--diff-color);
+          cursor: pointer;
+          transition: background 0.2s;
+          -webkit-tap-highlight-color: transparent;
+          outline: none;
+        }
+        .quiz-diff-btn:hover {
+          background: rgba(255,255,255,0.07);
+        }
+        .quiz-diff-label {
+          font-family: "Playfair Display", serif;
+          font-size: 1.4rem;
+          font-weight: 700;
+        }
+        .quiz-diff-desc {
+          font-size: 0.85rem;
+          opacity: 0.75;
+        }
+        .quiz-progress {
+          font-size: 0.9rem;
+          color: #aaa;
+          align-self: flex-start;
+        }
+        .quiz-question {
+          font-family: "Playfair Display", serif;
+          font-size: 1.3rem;
+          text-align: center;
+          line-height: 1.65;
+          color: #f5e8cc;
+          background: rgba(255,255,255,0.06);
+          border-radius: 12px;
+          padding: 22px 28px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .quiz-options {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          width: 100%;
+        }
+        .quiz-opt-btn {
+          padding: 16px 12px;
+          border-radius: 10px;
+          border: 1.5px solid rgba(255,255,255,0.18);
+          background: rgba(255,255,255,0.04);
+          color: #f5e8cc;
+          font-family: "EB Garamond", serif;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: background 0.15s, border-color 0.15s;
+          -webkit-tap-highlight-color: transparent;
+          outline: none;
+        }
+        .quiz-opt-btn:hover:not(.correct):not(.wrong) {
+          background: rgba(255,255,255,0.1);
+          border-color: #ecd07a;
+        }
+        .quiz-opt-btn.correct {
+          background: rgba(74,222,128,0.22);
+          border-color: #4ade80;
+          color: #4ade80;
+        }
+        .quiz-opt-btn.wrong {
+          background: rgba(248,113,113,0.22);
+          border-color: #f87171;
+          color: #f87171;
+        }
+        .quiz-result-title {
+          font-family: "Playfair Display", serif;
+          font-size: 1.6rem;
+          color: #ecd07a;
+        }
+        .quiz-result-score {
+          font-size: 3rem;
+          font-weight: 700;
+          color: #f5e8cc;
+        }
+        .quiz-result-pct {
+          font-size: 1.3rem;
+          color: #aaa;
+        }
+        .quiz-result-msg {
+          font-size: 1.1rem;
+          color: #ecd07a;
+        }
+        .quiz-retry-btn {
+          margin-top: 8px;
+          padding: 12px 36px;
+          border-radius: 8px;
+          border: 1.5px solid #ecd07a;
+          background: transparent;
+          color: #ecd07a;
+          font-family: "Playfair Display", serif;
+          font-size: 1rem;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          outline: none;
+          transition: background 0.2s;
+        }
+        .quiz-retry-btn:hover {
+          background: rgba(236,208,122,0.13);
         }
 
       `}</style>
