@@ -1385,32 +1385,32 @@ function VisualNovelGame() {
 // ==================== QUIZ GAME ====================
 const QUIZ_QUESTIONS = {
   easy: [
-    { q: "[쉬움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
-    { q: "[쉬움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
-    { q: "[쉬움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
-    { q: "[쉬움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
-    { q: "[쉬움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
+    { q: "[쉬움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "[쉬움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
+    { q: "[쉬움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
+    { q: "[쉬움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "[쉬움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
   ],
   normal: [
-    { q: "[보통 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
-    { q: "[보통 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
-    { q: "[보통 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
-    { q: "[보통 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
-    { q: "[보통 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
-    { q: "[보통 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
-    { q: "[보통 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
+    { q: "[보통 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "[보통 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
+    { q: "[보통 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
+    { q: "[보통 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "[보통 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
+    { q: "[보통 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
+    { q: "[보통 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
   ],
   hard: [
-    { q: "[어려움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
-    { q: "[어려움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
-    { q: "[어려움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
-    { q: "[어려움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
-    { q: "[어려움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
-    { q: "[어려움 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
-    { q: "[어려움 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 2 },
-    { q: "[어려움 문제 8 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 0 },
-    { q: "[어려움 문제 9 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 3 },
-    { q: "[어려움 문제 10 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3", "보기 4"], answer: 1 },
+    { q: "[어려움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "[어려움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
+    { q: "[어려움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
+    { q: "[어려움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "[어려움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
+    { q: "[어려움 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
+    { q: "[어려움 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "[어려움 문제 8 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
+    { q: "[어려움 문제 9 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
+    { q: "[어려움 문제 10 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
   ],
 };
 
@@ -1489,7 +1489,8 @@ function QuizGame() {
 
   const q = questions[currentQ];
   return (
-    <div className="quiz-wrap">
+    <div className="quiz-wrap" style={{ position: "relative" }}>
+      <button className="quiz-back-btn" onClick={() => setPhase("difficulty")}>← 뒤로</button>
       <div className="quiz-progress">{currentQ + 1} / {questions.length}</div>
       <div className="quiz-question">{q.q}</div>
       <div className="quiz-options">
@@ -2906,7 +2907,8 @@ export default function App() {
           flex-direction: column;
           align-items: center;
           gap: 8px;
-          padding: 20px 32px;
+          width: 120px;
+          padding: 20px 0;
           border: 2px solid var(--diff-color);
           border-radius: 12px;
           background: transparent;
@@ -2928,6 +2930,25 @@ export default function App() {
           font-size: 0.85rem;
           opacity: 0.75;
         }
+        .quiz-back-btn {
+          position: absolute;
+          top: 14px;
+          left: 16px;
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 6px;
+          color: #aaa;
+          font-size: 0.82rem;
+          padding: 5px 10px;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          outline: none;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .quiz-back-btn:hover {
+          color: #ecd07a;
+          border-color: #ecd07a;
+        }
         .quiz-progress {
           font-size: 0.9rem;
           color: #aaa;
@@ -2946,8 +2967,8 @@ export default function App() {
           box-sizing: border-box;
         }
         .quiz-options {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
+          display: flex;
+          flex-direction: column;
           gap: 12px;
           width: 100%;
         }
