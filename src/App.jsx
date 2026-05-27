@@ -14,6 +14,13 @@ import charMiddle from "./assets/중년.png";
 import charOld from "./assets/노인.png";
 import charGrandpa from "./assets/할아버지.png";
 import vnBg from "./assets/벽돌.jpg";
+import tree1m from "./assets/1m.png";
+import tree3m from "./assets/3m.png";
+import tree5m from "./assets/5m.png";
+import tree7m from "./assets/7m.png";
+import tree9m from "./assets/9m.png";
+import tree10m from "./assets/10m.png";
+import tree10mAfter from "./assets/10m끝난뒤.png";
 import shoeBlack from "./assets/검은구두.png";
 import shoeBrown from "./assets/갈색구두.png";
 import shoeSneaker from "./assets/운동화.png";
@@ -119,6 +126,7 @@ const SPREADS = [
         "정답이면 초록색, 오답이면 빨간색으로 표시된다",
         "마지막에 몇 문제를 맞췄는지 확인할 수 있다",
         "다시 도전하려면 다시하기 버튼을 누른다",
+        "답이 두개일 경우 둘 중 하나만 고르면 된다"
       ],
     },
 
@@ -126,7 +134,7 @@ const SPREADS = [
       type: "game",
       gameId: "memory",
       label: "게임 시작하기",
-      title: "중간퀴즈를 풀어보자!",
+      title: "책 내용 퀴즈를 풀어보자!",
     },
   },
 
@@ -149,6 +157,7 @@ const SPREADS = [
       type: "game",
       gameId: "word",
       label: "게임 시작하기",
+      title: "신발과 친해져 보자!(미완성)",
     },
   },
 ];
@@ -848,12 +857,12 @@ function NailGame() {
 // ==================== TREE GAME ====================
 function TreeGame() {
   const STAGES = [
-    { height: 1,  prob: 0.90, age: "아이",    char: charChild },
-    { height: 3,  prob: 0.80, age: "청소년",  char: charTeen },
-    { height: 5,  prob: 0.70, age: "청년",    char: charYoung },
-    { height: 7,  prob: 0.50, age: "중년",    char: charMiddle },
-    { height: 9,  prob: 0.40, age: "노인",    char: charOld },
-    { height: 10, prob: 0.30, age: "할아버지", char: charGrandpa },
+    { height: 1,  prob: 0.90, age: "아이",    char: charChild,   tree: tree1m },
+    { height: 3,  prob: 0.80, age: "청소년",  char: charTeen,    tree: tree3m },
+    { height: 5,  prob: 0.70, age: "청년",    char: charYoung,   tree: tree5m },
+    { height: 7,  prob: 0.50, age: "중년",    char: charMiddle,  tree: tree7m },
+    { height: 9,  prob: 0.40, age: "노인",    char: charOld,     tree: tree9m },
+    { height: 10, prob: 0.30, age: "할아버지", char: charGrandpa, tree: tree10m },
   ];
 
   const [stage, setStage] = useState(0);
@@ -904,13 +913,7 @@ function TreeGame() {
     return () => [t1, t2, t3].forEach(clearTimeout);
   }, [anim]);
 
-  const getPracticeBonus = (n) => {
-    if (n <= 2) return 1;
-    if (n <= 4) return 2;
-    if (n <= 6) return 3;
-    if (n <= 8) return 4;
-    return 5;
-  };
+  const getPracticeBonus = (n) => Math.ceil(n / 2);
 
   const doAttempt = () => {
     if (anim !== "idle" || practiceAnim) return;
@@ -921,7 +924,7 @@ function TreeGame() {
       const sceneW = sceneRef.current?.clientWidth ?? 740;
       const t0 = performance.now();
       if (stage >= 5) {
-        const travel = sceneW * 0.20;
+        const travel = sceneW * 0.06;
         const dur = 1050;
         const tick = (now) => {
           const t = Math.min((now - t0) / dur, 1);
@@ -1113,30 +1116,14 @@ function TreeGame() {
             </div>
           )}
           <div className="tree-poplar" style={{ bottom: "25px", height: `${renderTreeH + 20}px` }}>
-            <svg
-              style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "58px", height: `${renderTreeH}px`, pointerEvents: "none" }}
-              viewBox="0 0 42 100"
-              preserveAspectRatio="none"
-            >
-              <line x1="21" y1="0" x2="21" y2="100" stroke="#8b5e3c" strokeWidth="2.5" />
-              <line x1="21" y1="85" x2="3"  y2="62" stroke="#8b5e3c" strokeWidth="2" />
-              <line x1="21" y1="85" x2="39" y2="62" stroke="#8b5e3c" strokeWidth="2" />
-              <line x1="21" y1="68" x2="6"  y2="48" stroke="#8b5e3c" strokeWidth="1.6" />
-              <line x1="21" y1="68" x2="36" y2="48" stroke="#8b5e3c" strokeWidth="1.6" />
-              <line x1="21" y1="52" x2="9"  y2="36" stroke="#8b5e3c" strokeWidth="1.2" />
-              <line x1="21" y1="52" x2="33" y2="36" stroke="#8b5e3c" strokeWidth="1.2" />
-              <line x1="21" y1="37" x2="12" y2="25" stroke="#8b5e3c" strokeWidth="1" />
-              <line x1="21" y1="37" x2="30" y2="25" stroke="#8b5e3c" strokeWidth="1" />
-              <line x1="21" y1="23" x2="14" y2="14" stroke="#8b5e3c" strokeWidth="0.8" />
-              <line x1="21" y1="23" x2="28" y2="14" stroke="#8b5e3c" strokeWidth="0.8" />
-              <line x1="21" y1="12" x2="16" y2="5"  stroke="#8b5e3c" strokeWidth="0.6" />
-              <line x1="21" y1="12" x2="26" y2="5"  stroke="#8b5e3c" strokeWidth="0.6" />
-            </svg>
-            <div
-              className={`tree-canopy${anim === "cleared" && endingSeq >= 1 ? " tree-canopy-fade" : ""}`}
-              style={{ height: `${renderTreeH}px` }}
+            <img
+              src={grandpaAscentRef.current && endingSeq >= 1 ? tree10mAfter : cur.tree}
+              alt=""
+              className={`tree-img${anim === "cleared" && !grandpaAscentRef.current && endingSeq >= 1 ? " tree-canopy-fade" : ""}`}
             />
-            <div className="tree-trunk" />
+            {grandpaAscentRef.current && endingSeq >= 1 && (
+              <img src={cur.tree} alt="" className="tree-img tree-img-overlay tree-canopy-fade" />
+            )}
           </div>
           {anim !== "cleared" ? (
             <div className="tree-char" ref={charRef}><img src={cur.char} alt="" /></div>
@@ -1385,32 +1372,34 @@ function VisualNovelGame() {
 // ==================== QUIZ GAME ====================
 const QUIZ_QUESTIONS = {
   easy: [
-    { q: "[쉬움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
-    { q: "[쉬움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
-    { q: "[쉬움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
-    { q: "[쉬움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
-    { q: "[쉬움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
+    { q: "'이상한 사람들'의 저자는?", options: ["이상혁", "최인호", "이미란 선생님"], answer: 1 },
+    { q: "책의 이름은?", options: ["이상한 사람들", "미친놈들", "거지들"], answer: 0 },
+    { q: "이 책의 챕터 개수는? (작가의 말 제외)", options: ["3333개", "45개", "3개"], answer: 2 },
+    { q: "2챕터의 아저씨의 직업은?", options: ["높이뛰기 국가대표", "백수", "대장장이"], answer: 2 },
+    { q: "3챕터의 아저씨는 결혼을 했나요?", options: ["했다", "모르겠다", "안했다"], answer: 0 },
+    { q: "이 책의 출판사는?", options: ["맛있는 책", "책읽는섬", "성덕고등학교 빛글동아리"], answer: 1 },
+    { q: "이 책에 없는 챕터 이름은?", options: ["침묵은 금이다.", "포플러나무", "걸리버 여행기"], answer: 2 },
+    { q: "이 책의 발행연도는?", options: ["기원전 120년", "2018년", "2030년"], answer: 1 },
   ],
   normal: [
-    { q: "[보통 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
-    { q: "[보통 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
-    { q: "[보통 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
-    { q: "[보통 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
-    { q: "[보통 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
-    { q: "[보통 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
-    { q: "[보통 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "1챕터의 아버지의 이름은?", options: ["큰노마", "노마", "모름"], answer: [0, 1] },
+    { q: "1챕터의 노마는 어디서 태어났나요?", options: ["마구간", "다리 밑", "병원"], answer: 1 },
+    { q: "1챕터에서 큰 노마는 왜 자신의 뺨을 때렸나요?", options: ["작은 노마가 나무 위에서 자겠다고 고집해서", "작은 노마가 버릇 없이 굴어서", "아내를 지키지 못하는 자신이 원망스러워서"], answer: 0 },
+    { q: "노마가 집 대신 받은 돈으로 사지 않은 것은?", options: ["집", "우유", "건어"], answer: 0 },
+    { q: "2챕터의 포플러 나무에서 아저씨가 넘었던 철봉의 최고높이는?", options: ["2m 50cm", "2cm 40mm", "2m 40cm"], answer: 2 },
+    { q: "2챕터에서 아저씨가 나무 위로 사라져 버린 후 떨어진 것은?", options: ["사과", "할머니", "신발"], answer: 2 },
+    { q: "3챕터에서 아저씨가 젊었을 적 은행에 예금을 했던 금액은?", options: ["약 2억₩", "약 2천$", "약 20억Z$"], answer: 0 },
+    { q: "2챕터에서 방물장수가 아저씨의 미쳐버린 아내를 봤다고 하지 않은 장소는?", options: ["강가", "무덤가", "시장"], answer: 2 },
   ],
   hard: [
-    { q: "[어려움 문제 1 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
-    { q: "[어려움 문제 2 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
-    { q: "[어려움 문제 3 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
-    { q: "[어려움 문제 4 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
-    { q: "[어려움 문제 5 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
-    { q: "[어려움 문제 6 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
-    { q: "[어려움 문제 7 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
-    { q: "[어려움 문제 8 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 1 },
-    { q: "[어려움 문제 9 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 2 },
-    { q: "[어려움 문제 10 — 나중에 교체]", options: ["보기 1", "보기 2", "보기 3"], answer: 0 },
+    { q: "이 책의 작가는 어떤 대학교 어떤 과를 나왔나요?", options: ["연세대 영문과", "연세대 국문과", "고려대 국문과"], answer: 0 },
+    { q: "1챕터에서 시청 사람들이 노마를 설득하기 위해 말한 말은?", options: ["보기 흉하니까 나가라.", "보상금으로 더 좋은 곳으로 갈 수 있다.", "더 좋은 집을 추천해주겠다."], answer: 1 },
+    { q: "노마의 엄마는 홍수에 휩쓸려 죽었다. 그 홍수는 무슨 물인가?", options: ["바닷물", "개천물", "개울물"], answer: 1 },
+    { q: "작은 노마가 가지고 싶은 집 중 언급된 집은?", options: ["큰 집", "비와 바람을 가릴 수 있는 집", "태풍에 휩쓸리지 않는 집"], answer: 1 },
+    { q: "2챕터의 아저씨가 심은 포플러나무가 여기까지 자란다고 언급되지 않은 곳은?", options: ["무지개", "철봉", "국기 게양대"], answer: 0 },
+    { q: "2챕터의 아저씨가 높이 뛰는 모습을 보기 위해 화자와 애들이 준비한 것은?", options: ["모래 밭", "2m 40cm 장대", "아무것도 준비하지 않았다."], answer: 2 },
+    { q: "3챕터의 아저씨가 이웃 사람들에게 좋은 이웃이라고 여겨진 이유는?", options: ["이웃을 늘 배려했다.", "불우이웃에게 기부를 하였다.", "아침마다 온 동네를 청소하였다."], answer: 2 },
+    { q: "3챕터의 아저씨는 말하지 않겠다고 말한 후 약 몇 마디의 말을 하였나요?", options: ["한 마디도 하지 않았다.", "20마디 이상", "20마디 이하"], answer: 1 },
   ],
 };
 
@@ -1435,7 +1424,9 @@ function QuizGame() {
     if (locked) return;
     setLocked(true);
     setPicked(idx);
-    if (idx === questions[currentQ].answer) setScore((s) => s + 1);
+    const ans = questions[currentQ].answer;
+    const isCorrect = Array.isArray(ans) ? ans.includes(idx) : idx === ans;
+    if (isCorrect) setScore((s) => s + 1);
     setTimeout(() => {
       if (currentQ + 1 >= questions.length) {
         setPhase("result");
@@ -1497,7 +1488,8 @@ function QuizGame() {
         {q.options.map((opt, i) => {
           let cls = "quiz-opt-btn";
           if (picked !== null) {
-            if (i === q.answer) cls += " correct";
+            const isAns = Array.isArray(q.answer) ? q.answer.includes(i) : i === q.answer;
+            if (isAns) cls += " correct";
             else if (i === picked) cls += " wrong";
           }
           return (
@@ -1515,7 +1507,7 @@ function QuizGame() {
 const GAME_LABELS = {
   game1: "못 박기",
   ox: "포플러 나무 넘기",
-  memory: "중간퀴즈",
+  memory: "책 내용 퀴즈",
   word: "신발과 친해지기",
 };
 
@@ -2482,15 +2474,21 @@ export default function App() {
           flex-direction: column;
           align-items: center;
           justify-content: flex-end;
-          width: 64px;
+          width: auto;
         }
-        .tree-canopy {
-          width: 58px;
-          background: linear-gradient(to bottom, #1a5c2a, #2d8a44 50%, #1a5c2a);
-          border-radius: 50%;
-          flex-shrink: 0;
-          position: relative;
-          z-index: 1;
+        .tree-img {
+          height: 100%;
+          width: auto;
+          object-fit: contain;
+          display: block;
+          pointer-events: none;
+          user-select: none;
+        }
+        .tree-img-overlay {
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
         }
         .tree-trunk {
           width: 14px;
