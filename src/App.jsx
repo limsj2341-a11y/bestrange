@@ -143,13 +143,11 @@ const SPREADS = [
       type: "rules",
       title: "하는 법",
       rules: [
-        "신발을 하나 골라 대화를 시작한다",
-        "화면 아무 곳이나 클릭하면 다음 대사로 넘어간다",
-        "선택지가 나오면 원하는 답을 고른다",
-        "선택에 따라 호감도가 오른다",
-        "선택에 틀리면 처음부터 대화해야한다",
-        "한 번 대화한 신발은 다시 선택할 수 없다",
-        "신발 3개를 대화를 통해 호감도 100점 채우면 끝난다",
+        "닦기 버튼을 누르면 신발 하나가 나온다",
+        "꾹 누르고 있으면 닦아진다",
+        "신발을 다 닦으면 코인 100개를 얻는다",
+        "코인으로 업그레이드를 할 수 있다",
+        "업그레이드할수록 편하게 닦을 수 있다",
       ],
     },
 
@@ -157,7 +155,7 @@ const SPREADS = [
       type: "game",
       gameId: "word",
       label: "게임 시작하기",
-      title: "신발과 친해져 보자!(미완성)",
+      title: "신발을 닦자!",
     },
   },
 ];
@@ -373,11 +371,11 @@ const CoverPage = forwardRef((props, ref) => (
 const BackCoverPage = forwardRef((props, ref) => (
   <div
     ref={ref}
-    style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative" }}
+    style={{ width: "100%", height: "100%", overflow: "hidden", position: "relative", userSelect: "none" }}
   >
     <img
       src={backCoverImg}
-      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", pointerEvents: "none" }}
     />
   </div>
 ));
@@ -1188,183 +1186,218 @@ const VN_SHOES = [
   { id: "basket",  img: shoeBasket,  label: "깨끗한농구화" },
 ];
 
-// char 값은 신발 id (black/brown/sneaker/basket/nurse)
-const VN_SCRIPT = {
-  black_0:   { char: "black",   text: "...(검은 구두 선택 시 대사)", next: "end" },
-  brown_0:   { char: "brown",   text: "...(갈색 구두 선택 시 대사)", next: "end" },
-  sneaker_0: { char: "sneaker", text: "...(운동화 선택 시 대사)", next: "end" },
-  basket_0:  { char: "basket",  text: "...(농구화 선택 시 대사)", next: "end" },
-  nurse_0:   { char: "nurse",   text: "...(간호사 신발 선택 시 대사)", next: "end" },
-  end: { type: "end" },
-};
+const POWER_UPGRADES = [
+  { label: "닦기 강도 Lv.2", cost: 100,  power: 2  },
+  { label: "닦기 강도 Lv.3", cost: 300,  power: 5  },
+  { label: "닦기 강도 Lv.4", cost: 700,  power: 12 },
+  { label: "닦기 강도 Lv.5", cost: 1500, power: 25 },
+];
+const AUTO_UNLOCK_COST = 500;
+const AUTO_SPEED_UPGRADES = [
+  { label: "자동 속도 Lv.2", cost: 400, auto: 15 },
+  { label: "자동 속도 Lv.3", cost: 900, auto: 25 },
+];
+const INCOME_UPGRADES = [
+  { label: "수입 Lv.2", cost: 300,  reward: 200 },
+  { label: "수입 Lv.3", cost: 800,  reward: 400 },
+  { label: "수입 Lv.4", cost: 2000, reward: 800 },
+];
+const ENDING_COST = 3000;
 
-function VisualNovelGame() {
-  const [selectedShoe, setSelectedShoe] = useState(null);
-  const [sceneId, setSceneId] = useState(null);
-  const [displayed, setDisplayed] = useState("");
-  const [typing, setTyping] = useState(false);
-  const [doneShoes, setDoneShoes] = useState(new Set());
-  const [showFinalEnd, setShowFinalEnd] = useState(false);
-  const [favor, setFavor] = useState(0);
-  const timerRef = useRef(null);
+function CleaningGame() {
+  const [phase, setPhase] = useState("idle"); // "idle" | "cleaning" | "done" | "ending"
+  const [currentShoe, setCurrentShoe] = useState(null);
+  const [dirt, setDirt] = useState(100);
+  const [isPointing, setIsPointing] = useState(false);
+  const [coins, setCoins] = useState(0);
+  const [totalCleaned, setTotalCleaned] = useState(0);
+  const [totalCoins, setTotalCoins] = useState(0);
+  const completedRef = useRef(false);
+  const completionTimerRef = useRef(null);
 
-  const scene = VN_SCRIPT[sceneId];
-  const fullText = scene?.text ?? "";
+  const [powerLevel, setPowerLevel] = useState(0);
+  const [autoUnlocked, setAutoUnlocked] = useState(false);
+  const [autoSpeedLevel, setAutoSpeedLevel] = useState(0);
+  const [incomeLevel, setIncomeLevel] = useState(0);
 
+  const cleanPower = powerLevel === 0 ? 1 : POWER_UPGRADES[powerLevel - 1].power;
+  const autoRate = !autoUnlocked ? 0 : autoSpeedLevel === 0 ? 5 : AUTO_SPEED_UPGRADES[autoSpeedLevel - 1].auto;
+  const reward = incomeLevel === 0 ? 100 : INCOME_UPGRADES[incomeLevel - 1].reward;
+  const nextPower = powerLevel < POWER_UPGRADES.length ? POWER_UPGRADES[powerLevel] : null;
+  const nextAutoSpeed = autoUnlocked && autoSpeedLevel < AUTO_SPEED_UPGRADES.length ? AUTO_SPEED_UPGRADES[autoSpeedLevel] : null;
+  const nextIncome = incomeLevel < INCOME_UPGRADES.length ? INCOME_UPGRADES[incomeLevel] : null;
+
+  // 손으로 닦기
   useEffect(() => {
-    if (!sceneId || !scene || scene.type === "end") return;
-    setDisplayed("");
-    setTyping(true);
-    let i = 0;
-    const tick = () => {
-      i++;
-      setDisplayed(fullText.slice(0, i));
-      if (i < fullText.length) {
-        timerRef.current = setTimeout(tick, 38);
-      } else {
-        setTyping(false);
-      }
-    };
-    timerRef.current = setTimeout(tick, 38);
-    return () => clearTimeout(timerRef.current);
-  }, [sceneId]);
+    if (phase !== "cleaning" || !isPointing) return;
+    const id = setInterval(() => {
+      setDirt(prev => Math.max(0, prev - cleanPower));
+    }, 80);
+    return () => clearInterval(id);
+  }, [phase, isPointing, cleanPower]);
 
-  const advance = (nextId, favorDelta = 0) => {
-    clearTimeout(timerRef.current);
-    if (typing) {
-      setDisplayed(fullText);
-      setTyping(false);
-      return;
-    }
-    if (favorDelta !== 0) {
-      setFavor((f) => Math.min(100, Math.max(0, f + favorDelta)));
-    }
-    const target = nextId ?? "end";
-    if (target === "end") {
-      const next = new Set(doneShoes).add(selectedShoe.id);
-      setDoneShoes(next);
-      if (next.size >= 3) {
-        setShowFinalEnd(true);
-      } else {
-        setSelectedShoe(null);
-        setSceneId(null);
-        setDisplayed("");
-      }
-    } else {
-      setSceneId(target);
-    }
+  // 자동 닦기
+  useEffect(() => {
+    if (phase !== "cleaning" || autoRate === 0) return;
+    const id = setInterval(() => {
+      setDirt(prev => Math.max(0, prev - autoRate));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase, autoRate]);
+
+  // 완료 감지 — ref로 타이머 취소 방지
+  useEffect(() => {
+    if (dirt > 0 || !currentShoe || completedRef.current) return;
+    completedRef.current = true;
+    setIsPointing(false);
+    setPhase("done");
+    setCoins(c => c + reward);
+    setTotalCoins(t => t + reward);
+    setTotalCleaned(t => t + 1);
+    completionTimerRef.current = setTimeout(() => {
+      const shoe = VN_SHOES[Math.floor(Math.random() * VN_SHOES.length)];
+      completedRef.current = false;
+      setCurrentShoe(shoe);
+      setDirt(100);
+      setIsPointing(false);
+      setPhase("cleaning");
+    }, 300);
+  }, [dirt, currentShoe]);
+
+  useEffect(() => () => { if (completionTimerRef.current) clearTimeout(completionTimerRef.current); }, []);
+
+  const startCleaning = () => {
+    completedRef.current = false;
+    const shoe = VN_SHOES[Math.floor(Math.random() * VN_SHOES.length)];
+    setCurrentShoe(shoe);
+    setDirt(100);
+    setIsPointing(false);
+    setPhase("cleaning");
   };
 
-  const startWithShoe = (shoe) => {
-    setSelectedShoe(shoe);
-    setSceneId(`${shoe.id}_0`);
-    setFavor(0);
+  const buy = (cost, action) => {
+    if (coins < cost) return;
+    setCoins(c => c - cost);
+    action();
   };
 
-  const restart = () => {
-    clearTimeout(timerRef.current);
-    setSelectedShoe(null);
-    setSceneId(null);
-    setDisplayed("");
-    setTyping(false);
-    setDoneShoes(new Set());
-    setShowFinalEnd(false);
-  };
+  const rightPanel = (
+    <div className="clean-right">
+      <div className="clean-coins">💰 {coins} 코인</div>
 
-  // 최종 END 화면 (3개 완료)
-  if (showFinalEnd) {
+      <div className="clean-upgrade-section">
+        <div className="clean-upgrade-title">닦기 강도</div>
+        {nextPower ? (
+          <button className="clean-buy-btn" disabled={coins < nextPower.cost} onClick={() => buy(nextPower.cost, () => setPowerLevel(l => l + 1))}>
+            {nextPower.label} ({nextPower.cost}코인)
+          </button>
+        ) : <div className="clean-maxed">최대 레벨</div>}
+      </div>
+
+      <div className="clean-upgrade-section">
+        <div className="clean-upgrade-title">자동 닦기</div>
+        {!autoUnlocked ? (
+          <button className="clean-buy-btn" disabled={coins < AUTO_UNLOCK_COST} onClick={() => buy(AUTO_UNLOCK_COST, () => setAutoUnlocked(true))}>
+            자동 닦기 활성화 ({AUTO_UNLOCK_COST}코인)
+          </button>
+        ) : <div className="clean-maxed">활성화됨</div>}
+      </div>
+
+      <div className="clean-upgrade-section">
+        <div className={`clean-upgrade-title${!autoUnlocked ? " clean-upgrade-locked" : ""}`}>자동 닦기 속도</div>
+        {autoUnlocked ? (
+          nextAutoSpeed ? (
+            <button className="clean-buy-btn" disabled={coins < nextAutoSpeed.cost} onClick={() => buy(nextAutoSpeed.cost, () => setAutoSpeedLevel(l => l + 1))}>
+              {nextAutoSpeed.label} ({nextAutoSpeed.cost}코인)
+            </button>
+          ) : <div className="clean-maxed">최대 레벨</div>
+        ) : <div className="clean-maxed clean-upgrade-locked">자동 닦기 필요</div>}
+      </div>
+
+      <div className="clean-upgrade-section">
+        <div className="clean-upgrade-title">수입 증가</div>
+        {nextIncome ? (
+          <button className="clean-buy-btn" disabled={coins < nextIncome.cost} onClick={() => buy(nextIncome.cost, () => setIncomeLevel(l => l + 1))}>
+            {nextIncome.label} — {nextIncome.reward}코인/개<br/>({nextIncome.cost}코인)
+          </button>
+        ) : <div className="clean-maxed">최대 레벨</div>}
+      </div>
+
+      <div className="clean-upgrade-section">
+        <div className="clean-upgrade-title">엔딩</div>
+        <button className="clean-buy-btn clean-ending-btn" disabled={coins < ENDING_COST} onClick={() => buy(ENDING_COST, () => setPhase("ending"))}>
+          엔딩 보기 ({ENDING_COST}코인)
+        </button>
+      </div>
+    </div>
+  );
+
+  if (phase === "ending") {
     return (
       <div className="vn-end" style={{ backgroundImage: `url(${vnBg})` }}>
         <div className="vn-bg-overlay" />
-        <div className="vn-end-icon" style={{ position: "relative", zIndex: 1 }}>✦</div>
+        <div className="vn-end-icon" style={{ position: "relative", zIndex: 1 }}>✨</div>
         <div className="vn-end-title" style={{ position: "relative", zIndex: 1 }}>END</div>
-        <button className="vn-btn" style={{ position: "relative", zIndex: 1 }} onClick={restart}>처음부터</button>
+        <div style={{ position: "relative", zIndex: 1, color: "#ecd07a", fontFamily: "'EB Garamond', serif", fontSize: "1rem" }}>
+          총 {totalCleaned}개 완료<br/>💰 총 획득 코인: {totalCoins}
+        </div>
+        <button className="vn-btn" style={{ position: "relative", zIndex: 1 }} onClick={() => { setPhase("idle"); setCoins(0); setPowerLevel(0); setAutoUnlocked(false); setAutoSpeedLevel(0); setIncomeLevel(0); setTotalCleaned(0); setTotalCoins(0); }}>처음부터</button>
       </div>
     );
   }
 
-  // 신발 선택 화면
-  if (!selectedShoe) {
+  if (phase === "done") {
     return (
-      <div className="vn-select-wrap" style={{ backgroundImage: `url(${vnBg})` }}>
-        <div className="vn-bg-overlay" />
-        <div className="vn-select-title">
-          친해질 신발을 골라보자! ({doneShoes.size} / 3)
+      <div className="clean-wrap">
+        <div className="clean-left">
+          <div className="clean-done-screen">
+            <div className="clean-done-big">+{reward} 코인</div>
+          </div>
         </div>
-        <div className="vn-shoe-grid">
-          {VN_SHOES.map((shoe) => (
-            <button
-              key={shoe.id}
-              className={`vn-shoe-btn${doneShoes.has(shoe.id) ? " vn-shoe-done" : ""}`}
-              onClick={() => !doneShoes.has(shoe.id) && startWithShoe(shoe)}
-            >
-              <img src={shoe.img} alt={shoe.label} className="vn-shoe-img" />
-              <span className="vn-shoe-label">
-                {doneShoes.has(shoe.id) ? "✓ " : ""}{shoe.label.slice(0, 3)}<br />{shoe.label.slice(3)}
-              </span>
-            </button>
-          ))}
-        </div>
+        {rightPanel}
       </div>
     );
   }
 
-  const shoeData = VN_SHOES.find((s) => s.id === scene.char);
-  const charImg = shoeData?.img;
-  const charName = shoeData?.label ?? scene.char;
-  const hasChoices = !typing && scene.choices?.length > 0;
-
-  return (
-    <div
-      className="vn-wrap"
-      style={{ backgroundImage: `url(${vnBg})`, cursor: hasChoices ? "default" : "pointer" }}
-      onClick={!hasChoices ? () => advance(scene.next) : undefined}
-    >
-      <div className="vn-bg-overlay" />
-
-      <div className="vn-favor-box">
-        <span className="vn-favor-label">호감도</span>
-        <div className="vn-favor-track">
-          <div
-            className="vn-favor-fill"
-            style={{
-              width: `${favor}%`,
-              background: favor >= 70
-                ? "linear-gradient(90deg, #ff8fbc, #ff5090)"
-                : favor >= 40
-                  ? "linear-gradient(90deg, #c8a8ff, #9060e0)"
-                  : "linear-gradient(90deg, #6090c0, #3060a0)",
-            }}
-          />
-        </div>
-        <span className="vn-favor-num">{favor}</span>
-      </div>
-
-      {charImg && (
-        <div className="vn-char-wrap">
-          <img className="vn-char-img" src={charImg} alt={scene.char} />
-        </div>
-      )}
-
-      <div className="vn-textbox">
-        <div className="vn-name">{charName}</div>
-        <div className="vn-text">
-          {displayed}
-          {typing && <span className="vn-cursor">▌</span>}
-        </div>
-        {hasChoices && (
-          <div className="vn-choices">
-            {scene.choices.map((c, i) => (
-              <button key={i} className="vn-choice-btn" onClick={(e) => { e.stopPropagation(); advance(c.next, c.favor ?? 0); }}>
-                {c.label}
-              </button>
-            ))}
+  if (phase === "cleaning" && currentShoe) {
+    return (
+      <div className="clean-wrap">
+        <div className="clean-left">
+          <div className="clean-shoe-name">닦자!</div>
+          <div className="clean-dirt-label">
+            <span>청결도</span>
+            <div className="clean-dirt-bar">
+              <div className="clean-dirt-fill" style={{ width: `${100 - dirt}%` }} />
+            </div>
+            <span>{100 - dirt}%</span>
           </div>
-        )}
-        {!hasChoices && !typing && (
-          <div className="vn-next-arrow">▶</div>
-        )}
+          <div
+            className={`clean-shoe-wrap${isPointing ? " clean-shoe-active" : ""}`}
+            onPointerDown={() => setIsPointing(true)}
+            onPointerUp={() => setIsPointing(false)}
+            onPointerLeave={() => setIsPointing(false)}
+            onPointerCancel={() => setIsPointing(false)}
+          >
+            <img src={currentShoe.img} alt={currentShoe.label} className="clean-shoe-img" />
+            <div className="clean-dirt-overlay" style={{ opacity: dirt / 100 }} />
+          </div>
+          <div className="clean-hint">{isPointing ? "닦는 중..." : "꾹 눌러서 닦기"}</div>
+          {autoRate > 0 && <div className="clean-auto-info">자동 닦기 중 ({autoRate}/초)</div>}
+        </div>
+        {rightPanel}
       </div>
+    );
+  }
+
+  // idle
+  return (
+    <div className="clean-wrap">
+      <div className="clean-left">
+        <div className="clean-idle-title">신발 닦기</div>
+        <div className="clean-idle-sub">총 {totalCleaned}개 완료</div>
+        <button className="clean-start-btn" onClick={startCleaning}>닦기</button>
+      </div>
+      {rightPanel}
     </div>
   );
 }
@@ -1508,7 +1541,7 @@ const GAME_LABELS = {
   game1: "못 박기",
   ox: "포플러 나무 넘기",
   memory: "책 내용 퀴즈",
-  word: "신발과 친해지기",
+  word: "신발 닦기",
 };
 
 function GameModal({ gameId, onClose, zoom = 1 }) {
@@ -1530,7 +1563,7 @@ function GameModal({ gameId, onClose, zoom = 1 }) {
           {gameId === "game1" && <NailGame />}
           {gameId === "ox" && <TreeGame />}
           {gameId === "memory" && <QuizGame />}
-          {gameId === "word" && <VisualNovelGame />}
+          {gameId === "word" && <CleaningGame />}
         </div>
       </div>
       </div>
@@ -1799,6 +1832,8 @@ export default function App() {
       style={{
         width: "100%",
         height: "100vh",
+        userSelect: "none",
+        WebkitUserSelect: "none",
         background: `
           repeating-linear-gradient(
             0deg,
@@ -1926,6 +1961,8 @@ export default function App() {
           cursor: default;
           pointer-events: auto;
           touch-action: none;
+          user-select: none;
+          -webkit-user-select: none;
         }
 
         .back-to-front-button {
@@ -2612,118 +2649,225 @@ export default function App() {
           100% { transform: translateY(0); }
         }
 
-        /* ---- VISUAL NOVEL GAME ---- */
-        .vn-wrap {
+        /* ---- SHOE CLEANING GAME ---- */
+        .clean-wrap {
           width: 100%;
           height: 100%;
-          position: relative;
-          background-size: cover;
-          background-position: center;
+          display: flex;
+          background: #1a0e08;
+          color: #f5e8cc;
+        }
+        .clean-left {
+          flex: 1;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          padding: 24px;
+          border-right: 1px solid rgba(255,255,255,0.08);
+        }
+        .clean-right {
+          width: 260px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 24px 18px;
+          overflow-y: auto;
+        }
+        .clean-idle-title {
+          font-family: "Playfair Display", serif;
+          font-size: 1.8rem;
+          color: #ecd07a;
+        }
+        .clean-idle-sub {
+          font-size: 0.88rem;
+          color: #777;
+          font-family: "EB Garamond", serif;
+        }
+        .clean-start-btn {
+          margin-top: 12px;
+          padding: 18px 56px;
+          border-radius: 12px;
+          border: 2px solid #ecd07a;
+          background: transparent;
+          color: #ecd07a;
+          font-family: "Playfair Display", serif;
+          font-size: 1.5rem;
+          font-weight: 700;
+          cursor: pointer;
           -webkit-tap-highlight-color: transparent;
           outline: none;
+          transition: background 0.2s, transform 0.1s;
         }
+        .clean-start-btn:hover { background: rgba(236,208,122,0.12); }
+        .clean-start-btn:active { transform: scale(0.96); }
+        .clean-done-screen {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+        }
+        .clean-done-big {
+          font-family: "Playfair Display", serif;
+          font-size: 2rem;
+          color: #4ade80;
+          text-shadow: 0 0 16px rgba(74,222,128,0.5);
+        }
+        .clean-done-reward {
+          font-family: "Playfair Display", serif;
+          font-size: 1.2rem;
+          color: #ecd07a;
+        }
+        .clean-auto-info {
+          font-size: 0.78rem;
+          color: #6090c0;
+          font-family: monospace;
+        }
+        .clean-shoe-name {
+          font-family: "Playfair Display", serif;
+          font-size: 1.15rem;
+          color: #ecd07a;
+        }
+        .clean-dirt-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.82rem;
+          color: #aaa;
+          width: 100%;
+          max-width: 320px;
+        }
+        .clean-dirt-bar {
+          flex: 1;
+          height: 10px;
+          background: rgba(255,255,255,0.1);
+          border-radius: 5px;
+          overflow: hidden;
+        }
+        .clean-dirt-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #4ade80, #22c55e);
+          border-radius: 5px;
+          transition: width 0.1s linear;
+        }
+        .clean-shoe-wrap {
+          position: relative;
+          width: 200px;
+          height: 180px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          border-radius: 16px;
+          border: 2px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
+          user-select: none;
+          -webkit-tap-highlight-color: transparent;
+          transition: border-color 0.15s, transform 0.1s;
+          touch-action: none;
+        }
+        .clean-shoe-wrap.clean-shoe-active {
+          border-color: #ecd07a;
+          transform: scale(0.96);
+        }
+        .clean-shoe-wrap.clean-shoe-done { border-color: #4ade80; }
+        .clean-shoe-img {
+          width: 140px;
+          height: 100px;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+          position: relative;
+          z-index: 1;
+        }
+        .clean-dirt-overlay {
+          position: absolute;
+          inset: 0;
+          border-radius: 14px;
+          background: radial-gradient(ellipse at center, rgba(90,48,16,0.9), rgba(40,20,5,0.7));
+          pointer-events: none;
+          z-index: 2;
+          transition: opacity 0.1s;
+        }
+        .clean-done-badge {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: "Playfair Display", serif;
+          font-size: 1.3rem;
+          color: #4ade80;
+          z-index: 3;
+          text-shadow: 0 0 12px rgba(74,222,128,0.6);
+        }
+        .clean-hint {
+          font-size: 0.82rem;
+          color: #777;
+          font-family: "EB Garamond", serif;
+        }
+        .clean-back-btn {
+          margin-top: 4px;
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.18);
+          border-radius: 6px;
+          color: #888;
+          font-size: 0.8rem;
+          padding: 5px 12px;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          outline: none;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .clean-back-btn:hover { color: #ecd07a; border-color: #ecd07a; }
+        .clean-coins {
+          font-family: "Playfair Display", serif;
+          font-size: 1.35rem;
+          color: #ecd07a;
+          text-align: center;
+        }
+        .clean-power-info {
+          font-size: 0.75rem;
+          color: #777;
+          text-align: center;
+          font-family: monospace;
+        }
+        .clean-upgrade-section { display: flex; flex-direction: column; gap: 7px; }
+        .clean-upgrade-title {
+          font-family: "Playfair Display", serif;
+          font-size: 0.92rem;
+          color: #c9a84c;
+          margin-bottom: 2px;
+        }
+        .clean-buy-btn {
+          margin-top: 4px;
+          padding: 10px;
+          border-radius: 8px;
+          border: 1.5px solid #ecd07a;
+          background: transparent;
+          color: #ecd07a;
+          font-family: "Playfair Display", serif;
+          font-size: 0.82rem;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          outline: none;
+          transition: background 0.15s;
+        }
+        .clean-buy-btn:hover:not(:disabled) { background: rgba(236,208,122,0.12); }
+        .clean-buy-btn:disabled { opacity: 0.38; cursor: default; }
+        .clean-maxed { font-size: 0.78rem; color: #4ade80; text-align: center; margin-top: 4px; }
+        .clean-upgrade-locked { opacity: 0.35; }
+        .clean-ending-btn { border-color: #c8a8ff; color: #c8a8ff; }
+        .clean-ending-btn:hover:not(:disabled) { background: rgba(200,168,255,0.12); }
+
+        /* ---- VN SHARED (선택·완료 화면) ---- */
         .vn-bg-overlay {
           position: absolute;
           inset: 0;
           background: rgba(0, 0, 0, 0.45);
           pointer-events: none;
           z-index: 0;
-        }
-        .vn-char-wrap {
-          flex: 1;
-          display: flex;
-          align-items: flex-end;
-          justify-content: center;
-          min-height: 0;
-          position: relative;
-          z-index: 1;
-        }
-        .vn-char-img {
-          height: 72%;
-          max-height: 300px;
-          object-fit: contain;
-          display: block;
-          filter: drop-shadow(0 8px 24px rgba(0,0,0,0.6));
-          pointer-events: none;
-          user-select: none;
-          -webkit-user-drag: none;
-        }
-        .vn-textbox {
-          position: relative;
-          z-index: 2;
-          background: linear-gradient(180deg, rgba(0,0,0,0.72), rgba(0,0,0,0.88));
-          border-top: 1px solid rgba(160,120,255,0.3);
-          padding: 18px 24px 16px;
-          min-height: 140px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          flex-shrink: 0;
-        }
-        .vn-name {
-          font-family: "Playfair Display", serif;
-          font-size: 0.92rem;
-          font-weight: 700;
-          color: #c8a8ff;
-          background: rgba(160,100,255,0.18);
-          border: 1px solid rgba(160,100,255,0.35);
-          border-radius: 4px;
-          padding: 2px 10px;
-          display: inline-block;
-          align-self: flex-start;
-        }
-        .vn-text {
-          font-family: "EB Garamond", serif;
-          font-size: 1.05rem;
-          line-height: 1.8;
-          color: #f0eaff;
-          min-height: 60px;
-        }
-        .vn-cursor {
-          animation: vn-blink 0.7s step-end infinite;
-          color: #c8a8ff;
-        }
-        @keyframes vn-blink {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0; }
-        }
-        .vn-next-arrow {
-          position: absolute;
-          bottom: 14px;
-          right: 20px;
-          color: #c8a8ff;
-          font-size: 0.8rem;
-          animation: vn-bounce 0.9s ease-in-out infinite alternate;
-        }
-        @keyframes vn-bounce {
-          from { transform: translateX(0); }
-          to   { transform: translateX(5px); }
-        }
-        .vn-choices {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-top: 4px;
-        }
-        .vn-choice-btn {
-          padding: 9px 18px;
-          background: rgba(100,60,200,0.22);
-          border: 1px solid rgba(160,100,255,0.5);
-          border-radius: 6px;
-          color: #e8d8ff;
-          font-family: "EB Garamond", serif;
-          font-size: 0.96rem;
-          cursor: pointer;
-          -webkit-tap-highlight-color: transparent;
-          text-align: left;
-          transition: background 0.15s;
-        }
-        .vn-choice-btn:hover {
-          background: rgba(130,80,240,0.38);
-          border-color: rgba(180,130,255,0.8);
         }
         .vn-end {
           width: 100%;
@@ -2834,46 +2978,6 @@ export default function App() {
           background: rgba(0,0,0,0.52);
           border-color: rgba(160,100,255,0.15);
           transform: none;
-        }
-
-        .vn-favor-box {
-          position: absolute;
-          top: 14px;
-          right: 16px;
-          z-index: 10;
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          background: rgba(0,0,0,0.55);
-          border: 1px solid rgba(160,100,255,0.35);
-          border-radius: 20px;
-          padding: 5px 12px 5px 10px;
-          pointer-events: none;
-        }
-        .vn-favor-label {
-          font-family: "EB Garamond", serif;
-          font-size: 0.78rem;
-          color: #c8a8ff;
-          white-space: nowrap;
-        }
-        .vn-favor-track {
-          width: 90px;
-          height: 7px;
-          background: rgba(255,255,255,0.12);
-          border-radius: 4px;
-          overflow: hidden;
-        }
-        .vn-favor-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.4s ease, background 0.4s ease;
-        }
-        .vn-favor-num {
-          font-family: monospace;
-          font-size: 0.78rem;
-          color: #e8d8ff;
-          min-width: 22px;
-          text-align: right;
         }
 
         /* ---- QUIZ GAME ---- */
