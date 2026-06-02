@@ -121,7 +121,7 @@ const SPREADS = [
       type: "rules",
       title: "하는 법",
       rules: [
-        "난이도를 고른다 (쉬움 / 보통 / 어려움)",
+        "난이도를 고른다 (쉬움 / 보통 / 어려움 / 헬)",
         "문제를 읽고 4개의 보기 중 하나를 고른다",
         "정답이면 초록색, 오답이면 빨간색으로 표시된다",
         "마지막에 몇 문제를 맞췄는지 확인할 수 있다",
@@ -1434,6 +1434,16 @@ const QUIZ_QUESTIONS = {
     { q: "3챕터의 아저씨가 이웃 사람들에게 좋은 이웃이라고 여겨진 이유는?", options: ["이웃을 늘 배려했다.", "불우이웃에게 기부를 하였다.", "아침마다 온 동네를 청소하였다."], answer: 2 },
     { q: "3챕터의 아저씨는 말하지 않겠다고 말한 후 약 몇 마디의 말을 하였나요?", options: ["한 마디도 하지 않았다.", "20마디 이상", "20마디 이하"], answer: 1 },
   ],
+  hell: [
+    { q: "'이상한 사람들'의 그린이는?", options: ["정중모", "김무연", "함명춘", "김민서"], answer: 1 },
+    { q: "노마가 산 우표에 그려진 그림은?", options: ["여왕의 초상화", "나무 한 그루", "바다", "모나리자"], answer: 0 },
+    { q: "노마는 나무 위에서 본 과일들에게 이름을 지어주었는데, 이 중 언급하지 않은 것은?", options: ["벽시계", "전화기", "자명종", "바구니"], answer: 1 },
+    { q: "노마가 작은 집을 소유하게 된 나이는?", options: ["65세", "66세", "67세", "70세"], answer: 2 },
+    { q: "'침묵은 금이다'의 아저씨는 몇 번의 금연 결심을 못 채워 파기하였나요?", options: ["7번", "8번", "9번", "12번"], answer: 2 },
+    { q: "'침묵은 금이다'의 아저씨가 아이들에게 얘기해준 동화 중 언급된 것은?", options: ["콩쥐팥쥐", "토끼와 거북이", "흥부와 놀부", "금도끼 은도끼"], answer: 0 },
+    { q: "노마의 집에 성경 액자가 그려진 페이지의 왼쪽 페이지 쪽수는?", options: ["30쪽", "32쪽", "34쪽", "28쪽"], answer: 0 },
+    { q: "이 책의 가격은? (책에 표시된 것)", options: ["10000원", "12000원", "8000원", "14000원"], answer: 1 },
+  ],
 };
 
 function QuizGame() {
@@ -1443,8 +1453,11 @@ function QuizGame() {
   const [score, setScore] = useState(0);
   const [picked, setPicked] = useState(null);
   const [locked, setLocked] = useState(false);
+  const [clearedDiffs, setClearedDiffs] = useState(new Set());
+  const currentDiffRef = useRef(null);
 
   const startGame = (diff) => {
+    currentDiffRef.current = diff;
     setQuestions([...QUIZ_QUESTIONS[diff]]);
     setCurrentQ(0);
     setScore(0);
@@ -1462,6 +1475,7 @@ function QuizGame() {
     if (isCorrect) setScore((s) => s + 1);
     setTimeout(() => {
       if (currentQ + 1 >= questions.length) {
+        setClearedDiffs(prev => new Set([...prev, currentDiffRef.current]));
         setPhase("result");
       } else {
         setCurrentQ((q) => q + 1);
@@ -1480,17 +1494,21 @@ function QuizGame() {
             { key: "easy",   label: "쉬움",   color: "#4ade80", count: QUIZ_QUESTIONS.easy.length },
             { key: "normal", label: "보통",   color: "#facc15", count: QUIZ_QUESTIONS.normal.length },
             { key: "hard",   label: "어려움", color: "#f87171", count: QUIZ_QUESTIONS.hard.length },
-          ].map((d) => (
-            <button
-              key={d.key}
-              className="quiz-diff-btn"
-              style={{ "--diff-color": d.color }}
-              onClick={() => startGame(d.key)}
-            >
-              <span className="quiz-diff-label">{d.label}</span>
-              <span className="quiz-diff-desc">{d.count}문제</span>
-            </button>
-          ))}
+            { key: "hell",   label: "헬",     color: "#a855f7", count: QUIZ_QUESTIONS.hell.length, requiresClear: "hard" },
+          ].map((d) => {
+            const isLocked = d.requiresClear && !clearedDiffs.has(d.requiresClear);
+            return (
+              <button
+                key={d.key}
+                className="quiz-diff-btn"
+                style={{ "--diff-color": isLocked ? "#555" : d.color, opacity: isLocked ? 0.5 : 1, cursor: isLocked ? "default" : "pointer" }}
+                onClick={() => !isLocked && startGame(d.key)}
+              >
+                <span className="quiz-diff-label">{isLocked ? "🔒" : ""}{d.label}</span>
+                <span className="quiz-diff-desc">{isLocked ? "어려움 클리어" : `${d.count}문제`}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -1912,10 +1930,6 @@ export default function App() {
         }
 
         .zoom-controls {
-          position: absolute;
-          top: 24px;
-          right: 24px;
-          z-index: 20;
           display: flex;
           align-items: center;
           gap: 8px;
@@ -3139,17 +3153,16 @@ export default function App() {
 
       `}</style>
 
-      <div className="zoom-controls" aria-label="zoom controls">
-        <button type="button" onClick={zoomOut} aria-label="zoom out">
-          -
-        </button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button type="button" onClick={zoomIn} aria-label="zoom in">
-          +
-        </button>
-        <button type="button" onClick={resetZoom} aria-label="reset zoom">
-          초기화
-        </button>
+      <div style={{ position: "absolute", top: 24, right: 24, zIndex: 20, display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: "8px 14px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)", fontSize: "0.82rem", color: "#1a1a1a", whiteSpace: "nowrap", pointerEvents: "none" }}>
+          tip: 큰화면으로 플레이하면 편하다
+        </div>
+        <div className="zoom-controls" aria-label="zoom controls">
+          <button type="button" onClick={zoomOut} aria-label="zoom out">-</button>
+          <span>{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={zoomIn} aria-label="zoom in">+</button>
+          <button type="button" onClick={resetZoom} aria-label="reset zoom">초기화</button>
+        </div>
       </div>
 
       {/* 16:9 영역 */}
