@@ -43,23 +43,41 @@ const supabase = createClient(
 let _vol = 1;
 let _muted = false;
 let _audioCtx = null;
+const _buffers = {};
+
 const getCtx = () => {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (_audioCtx.state === "suspended") _audioCtx.resume();
   return _audioCtx;
 };
+
+const loadBuffer = async (src) => {
+  if (_buffers[src]) return;
+  const res = await fetch(src);
+  const ab = await res.arrayBuffer();
+  const ctx = getCtx();
+  _buffers[src] = await ctx.decodeAudioData(ab);
+};
+
+const preloadSounds = (srcs) => srcs.forEach(s => loadBuffer(s).catch(() => {}));
+
 const playSound = (src, rate = 1) => {
   if (_muted) return;
   try {
     const ctx = getCtx();
-    const a = new Audio(src);
-    a.playbackRate = rate;
-    const source = ctx.createMediaElementSource(a);
-    const gain = ctx.createGain();
-    gain.gain.value = _vol * 2.5;
-    source.connect(gain);
-    gain.connect(ctx.destination);
-    a.play().catch(() => {});
+    const buf = _buffers[src];
+    if (buf) {
+      const source = ctx.createBufferSource();
+      source.buffer = buf;
+      source.playbackRate.value = rate;
+      const gain = ctx.createGain();
+      gain.gain.value = _vol * 2.5;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+    } else {
+      loadBuffer(src).then(() => playSound(src, rate)).catch(() => {});
+    }
   } catch {
     const a = new Audio(src);
     a.volume = Math.min(1, _vol);
@@ -1827,7 +1845,15 @@ export default function App() {
   useGoogleFonts();
   const [volume, setVolume] = useState(100);
   const [muted, setMuted] = useState(false);
-  const handleVolume = (v) => { setVolume(v); _vol = v / 100; if (_audioCtx) {} };
+  useEffect(() => {
+    const onFirst = () => {
+      preloadSounds([sfxHammer, sfxWrong, sfxSelect, sfxPageFlip, sfxCorrect, sfxClean]);
+      window.removeEventListener("pointerdown", onFirst);
+    };
+    window.addEventListener("pointerdown", onFirst);
+    return () => window.removeEventListener("pointerdown", onFirst);
+  }, []);
+  const handleVolume = (v) => { setVolume(v); _vol = v / 100; };
   const handleMute = () => { setMuted(m => { _muted = !m; return !m; }); };
   const [activeGame, setActiveGame] = useState(null);
   const initialZoom = Math.max(0.4, Math.min(2, (window.innerWidth - 96) / (467 * 2), (window.innerHeight - 96) / 660));
