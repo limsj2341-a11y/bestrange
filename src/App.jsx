@@ -14,6 +14,12 @@ import charMiddle from "./assets/중년.png";
 import charOld from "./assets/노인.png";
 import charGrandpa from "./assets/할아버지.png";
 import vnBg from "./assets/벽돌.jpg";
+import sfxHammer from "./assets/망치질.mp3";
+import sfxWrong from "./assets/틀림.mp3";
+import sfxSelect from "./assets/선택.mp3";
+import sfxPageFlip from "./assets/책넘김.mp3";
+import sfxCorrect from "./assets/정답.mp3";
+import sfxClean from "./assets/닦기.mp3";
 import tree1m from "./assets/1m.png";
 import tree3m from "./assets/3m.png";
 import tree5m from "./assets/5m.png";
@@ -32,6 +38,16 @@ const supabase = createClient(
   "https://uvveffiuekvjmbqhlqnt.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2dmVmZml1ZWt2am1icWhscW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTIwNTgsImV4cCI6MjA5NDI2ODA1OH0.pBKdyDAr_Tb-COFzkGCweyAHVb-VTWJjrQm2Cbmn9Hc"
 );
+
+// ==================== AUDIO ====================
+let _vol = 1;
+let _muted = false;
+const playSound = (src) => {
+  if (_muted) return;
+  const a = new Audio(src);
+  a.volume = _vol;
+  a.play().catch(() => {});
+};
 
 // ==================== FONT ====================
 function useGoogleFonts() {
@@ -332,7 +348,7 @@ const RightPage = forwardRef(
                 fontFamily: '"Playfair Display", serif',
                 WebkitTapHighlightColor: "transparent",
               }}
-              onClick={() => onStartGame(data.gameId)}
+              onClick={() => { playSound(sfxSelect); onStartGame(data.gameId); }}
             >
               {data.label}
             </button>
@@ -579,6 +595,7 @@ function NailGame() {
       if (!shaking) {
         missCountRef.current += 1;
         setMissCount(missCountRef.current);
+        playSound(sfxWrong);
       }
       return;
     }
@@ -595,6 +612,7 @@ function NailGame() {
       setGoldenZone(updated);
     }
 
+    playSound(sfxHammer);
     const updated = [...cur, { x, y, type, id: nailIdRef.current++ }];
     nailsRef.current = updated;
     setNails(updated);
@@ -1146,7 +1164,7 @@ function TreeGame() {
           <div className="tree-practice-panel">
             <button
               className={`tree-practice-btn${practiceMode ? " active" : ""}`}
-              onClick={practiceMode ? exitPractice : enterPractice}
+              onClick={() => { playSound(sfxSelect); practiceMode ? exitPractice() : enterPractice(); }}
               disabled={anim !== "idle" || practiceAnim}
             >
               {practiceMode ? "그만하기" : "연습하기"}
@@ -1168,9 +1186,9 @@ function TreeGame() {
         <div className="tree-dead-msg">💀 실패했다!</div>
       ) : anim === "idle" ? (
         practiceMode ? (
-          <button className="tree-btn tree-btn-practice" onClick={doPractice} disabled={practiceAnim}>연습!</button>
+          <button className="tree-btn tree-btn-practice" onClick={() => { playSound(sfxSelect); doPractice(); }} disabled={practiceAnim}>연습!</button>
         ) : (
-          <button className="tree-btn" onClick={doAttempt}>도전!</button>
+          <button className="tree-btn" onClick={() => { playSound(sfxSelect); doAttempt(); }}>도전!</button>
         )
       ) : null}
     </div>
@@ -1277,6 +1295,7 @@ function CleaningGame() {
 
   const buy = (cost, action) => {
     if (coins < cost) return;
+    playSound(sfxSelect);
     setCoins(c => c - cost);
     action();
   };
@@ -1395,7 +1414,7 @@ function CleaningGame() {
       <div className="clean-left">
         <div className="clean-idle-title">신발 닦기</div>
         <div className="clean-idle-sub">총 {totalCleaned}개 완료</div>
-        <button className="clean-start-btn" onClick={startCleaning}>닦기</button>
+        <button className="clean-start-btn" onClick={() => { playSound(sfxClean); startCleaning(); }}>닦기</button>
       </div>
       {rightPanel}
     </div>
@@ -1472,6 +1491,7 @@ function QuizGame() {
     setPicked(idx);
     const ans = questions[currentQ].answer;
     const isCorrect = Array.isArray(ans) ? ans.includes(idx) : idx === ans;
+    playSound(isCorrect ? sfxCorrect : sfxWrong);
     if (isCorrect) setScore((s) => s + 1);
     setTimeout(() => {
       if (currentQ + 1 >= questions.length) {
@@ -1502,7 +1522,7 @@ function QuizGame() {
                 key={d.key}
                 className="quiz-diff-btn"
                 style={{ "--diff-color": isLocked ? "#555" : d.color, opacity: isLocked ? 0.5 : 1, cursor: isLocked ? "default" : "pointer" }}
-                onClick={() => !isLocked && startGame(d.key)}
+                onClick={() => { if (!isLocked) { playSound(sfxSelect); startGame(d.key); } }}
               >
                 <span className="quiz-diff-label">{isLocked ? "🔒" : ""}{d.label}</span>
                 <span className="quiz-diff-desc">{isLocked ? "어려움 클리어" : `${d.count}문제`}</span>
@@ -1524,7 +1544,7 @@ function QuizGame() {
         <div className="quiz-result-score">{score} / {total}</div>
         <div className="quiz-result-pct">{pct}점</div>
         <div className="quiz-result-msg">{msg}</div>
-        <button className="quiz-retry-btn" onClick={() => setPhase("difficulty")}>다시하기</button>
+        <button className="quiz-retry-btn" onClick={() => { playSound(sfxSelect); setPhase("difficulty"); }}>처음으로</button>
       </div>
     );
   }
@@ -1575,7 +1595,7 @@ function GameModal({ gameId, onClose, zoom = 1 }) {
           <span className="game-modal-title">
             {GAME_LABELS[gameId] ?? gameId}
           </span>
-          <button className="game-modal-close" onClick={onClose}>✕</button>
+          <button className="game-modal-close" onClick={() => { playSound(sfxSelect); onClose(); }}>✕</button>
         </div>
         <div className="game-modal-body" style={(gameId === "game1" || gameId === "ox" || gameId === "word" || gameId === "memory") ? { padding: 0 } : {}}>
           {gameId === "game1" && <NailGame />}
@@ -1665,7 +1685,7 @@ function Book({ onStartGame, zoom }) {
         showPageCorners={!showGoFirstButton}
         disableFlipByClick={showGoFirstButton}
         className="magic-book"
-        onFlip={(e) => setCurrentPage(e.data)}
+        onFlip={(e) => { playSound(sfxPageFlip); setCurrentPage(e.data); }}
         onChangeState={(e) => setBookState(e.data)}
         onInit={(e) => prepareBook(e.object)}
         onUpdate={(e) => prepareBook(e.object)}
@@ -1762,6 +1782,7 @@ function Book({ onStartGame, zoom }) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                playSound(sfxSelect);
                 goFirstPage();
               }}
               style={{
@@ -1784,6 +1805,10 @@ function Book({ onStartGame, zoom }) {
 // ==================== APP ====================
 export default function App() {
   useGoogleFonts();
+  const [volume, setVolume] = useState(100);
+  const [muted, setMuted] = useState(false);
+  const handleVolume = (v) => { setVolume(v); _vol = v / 100; };
+  const handleMute = () => { setMuted(m => { _muted = !m; return !m; }); };
   const [activeGame, setActiveGame] = useState(null);
   const initialZoom = Math.max(0.4, Math.min(2, (window.innerWidth - 96) / (467 * 2), (window.innerHeight - 96) / 660));
   const [zoom, setZoom] = useState(initialZoom);
@@ -3158,11 +3183,25 @@ export default function App() {
           tip: 큰화면으로 플레이하면 편하다
         </div>
         <div className="zoom-controls" aria-label="zoom controls">
-          <button type="button" onClick={zoomOut} aria-label="zoom out">-</button>
+          <button type="button" onClick={() => { playSound(sfxSelect); zoomOut(); }} aria-label="zoom out">-</button>
           <span>{Math.round(zoom * 100)}%</span>
-          <button type="button" onClick={zoomIn} aria-label="zoom in">+</button>
-          <button type="button" onClick={resetZoom} aria-label="reset zoom">초기화</button>
+          <button type="button" onClick={() => { playSound(sfxSelect); zoomIn(); }} aria-label="zoom in">+</button>
+          <button type="button" onClick={() => { playSound(sfxSelect); resetZoom(); }} aria-label="reset zoom">초기화</button>
         </div>
+      </div>
+
+      <div style={{ position: "absolute", bottom: 16, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)" }}>
+        <button
+          type="button"
+          onClick={handleMute}
+          style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", padding: 0, lineHeight: 1, flexShrink: 0, WebkitTapHighlightColor: "transparent" }}
+        >{muted ? "🔇" : "🔊"}</button>
+        <input
+          type="range" min={0} max={100} value={muted ? 0 : volume}
+          onChange={(e) => handleVolume(Number(e.target.value))}
+          style={{ width: 160, cursor: "pointer", accentColor: "#4b1111", flexShrink: 0 }}
+        />
+        <span style={{ fontSize: "0.75rem", color: "#333", width: "2.5em", textAlign: "right", flexShrink: 0 }}>{muted ? 0 : volume}%</span>
       </div>
 
       {/* 16:9 영역 */}
