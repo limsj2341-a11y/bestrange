@@ -20,7 +20,7 @@ import sfxSelect from "./assets/선택.mp3";
 import sfxPageFlip from "./assets/책넘김.mp3";
 import sfxCorrect from "./assets/정답.mp3";
 import sfxClean from "./assets/닦기.mp3";
-import bgmSrc from "./assets/브금.mp3";
+import bgmSrc from "./assets/브금수정.mp3";
 import tree1m from "./assets/1m.png";
 import tree3m from "./assets/3m.png";
 import tree5m from "./assets/5m.png";
