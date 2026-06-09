@@ -20,6 +20,7 @@ import sfxSelect from "./assets/선택.mp3";
 import sfxPageFlip from "./assets/책넘김.mp3";
 import sfxCorrect from "./assets/정답.mp3";
 import sfxClean from "./assets/닦기.mp3";
+import bgmSrc from "./assets/브금.mp3";
 import tree1m from "./assets/1m.png";
 import tree3m from "./assets/3m.png";
 import tree5m from "./assets/5m.png";
@@ -42,8 +43,24 @@ const supabase = createClient(
 // ==================== AUDIO ====================
 let _vol = 1;
 let _muted = false;
+let _musicOn = true;
+let _bgm = null;
 let _audioCtx = null;
 const _buffers = {};
+
+const syncBgmVolume = () => {
+  if (!_bgm) return;
+  _bgm.volume = _muted ? 0 : Math.min(1, _vol * 0.7);
+};
+const startBgm = () => {
+  if (!_bgm) return;
+  syncBgmVolume();
+  _bgm.play().catch(() => {});
+};
+const stopBgm = () => {
+  if (!_bgm) return;
+  _bgm.pause();
+};
 
 const getCtx = () => {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1845,16 +1862,34 @@ export default function App() {
   useGoogleFonts();
   const [volume, setVolume] = useState(100);
   const [muted, setMuted] = useState(false);
+  const [musicOn, setMusicOn] = useState(true);
   useEffect(() => {
+    // BGM 즉시 시작 시도
+    if (!_bgm) {
+      _bgm = new Audio(bgmSrc);
+      _bgm.loop = true;
+      if (_musicOn) startBgm();
+    }
+
+    // 첫 클릭 시: 효과음 프리로드 + autoplay 막혔으면 BGM 재시도
     const onFirst = () => {
       preloadSounds([sfxHammer, sfxWrong, sfxSelect, sfxPageFlip, sfxCorrect, sfxClean]);
+      if (_musicOn && _bgm && _bgm.paused) startBgm();
       window.removeEventListener("pointerdown", onFirst);
     };
     window.addEventListener("pointerdown", onFirst);
     return () => window.removeEventListener("pointerdown", onFirst);
   }, []);
-  const handleVolume = (v) => { setVolume(v); _vol = v / 100; };
-  const handleMute = () => { setMuted(m => { _muted = !m; return !m; }); };
+  const handleVolume = (v) => { setVolume(v); _vol = v / 100; syncBgmVolume(); };
+  const handleMute = () => { setMuted(m => { _muted = !m; syncBgmVolume(); return !m; }); };
+  const handleMusicToggle = () => {
+    setMusicOn(m => {
+      _musicOn = !m;
+      if (_musicOn) startBgm();
+      else stopBgm();
+      return !m;
+    });
+  };
   const [activeGame, setActiveGame] = useState(null);
   const initialZoom = Math.max(0.4, Math.min(2, (window.innerWidth - 96) / (467 * 2), (window.innerHeight - 96) / 660));
   const [zoom, setZoom] = useState(initialZoom);
@@ -3237,6 +3272,12 @@ export default function App() {
       </div>
 
       <div style={{ position: "absolute", bottom: 16, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)" }}>
+        <button
+          type="button"
+          onClick={handleMusicToggle}
+          title={musicOn ? "음악 끄기" : "음악 켜기"}
+          style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", padding: 0, lineHeight: 1, flexShrink: 0, WebkitTapHighlightColor: "transparent", opacity: musicOn ? 1 : 0.35 }}
+        >🎵</button>
         <button
           type="button"
           onClick={handleMute}
