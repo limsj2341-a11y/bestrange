@@ -42,12 +42,32 @@ const supabase = createClient(
 // ==================== AUDIO ====================
 let _vol = 1;
 let _muted = false;
-const playSound = (src) => {
-  if (_muted) return;
-  const a = new Audio(src);
-  a.volume = _vol;
-  a.play().catch(() => {});
+let _audioCtx = null;
+const getCtx = () => {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === "suspended") _audioCtx.resume();
+  return _audioCtx;
 };
+const playSound = (src, rate = 1) => {
+  if (_muted) return;
+  try {
+    const ctx = getCtx();
+    const a = new Audio(src);
+    a.playbackRate = rate;
+    const source = ctx.createMediaElementSource(a);
+    const gain = ctx.createGain();
+    gain.gain.value = _vol * 2.5;
+    source.connect(gain);
+    gain.connect(ctx.destination);
+    a.play().catch(() => {});
+  } catch {
+    const a = new Audio(src);
+    a.volume = Math.min(1, _vol);
+    a.playbackRate = rate;
+    a.play().catch(() => {});
+  }
+};
+const playSelect = () => playSound(sfxSelect, 0.75);
 
 // ==================== FONT ====================
 function useGoogleFonts() {
@@ -348,7 +368,7 @@ const RightPage = forwardRef(
                 fontFamily: '"Playfair Display", serif',
                 WebkitTapHighlightColor: "transparent",
               }}
-              onClick={() => { playSound(sfxSelect); onStartGame(data.gameId); }}
+              onClick={() => { playSelect(); onStartGame(data.gameId); }}
             >
               {data.label}
             </button>
@@ -1164,7 +1184,7 @@ function TreeGame() {
           <div className="tree-practice-panel">
             <button
               className={`tree-practice-btn${practiceMode ? " active" : ""}`}
-              onClick={() => { playSound(sfxSelect); practiceMode ? exitPractice() : enterPractice(); }}
+              onClick={() => { playSelect(); practiceMode ? exitPractice() : enterPractice(); }}
               disabled={anim !== "idle" || practiceAnim}
             >
               {practiceMode ? "그만하기" : "연습하기"}
@@ -1186,9 +1206,9 @@ function TreeGame() {
         <div className="tree-dead-msg">💀 실패했다!</div>
       ) : anim === "idle" ? (
         practiceMode ? (
-          <button className="tree-btn tree-btn-practice" onClick={() => { playSound(sfxSelect); doPractice(); }} disabled={practiceAnim}>연습!</button>
+          <button className="tree-btn tree-btn-practice" onClick={() => { playSelect(); doPractice(); }} disabled={practiceAnim}>연습!</button>
         ) : (
-          <button className="tree-btn" onClick={() => { playSound(sfxSelect); doAttempt(); }}>도전!</button>
+          <button className="tree-btn" onClick={() => { playSelect(); doAttempt(); }}>도전!</button>
         )
       ) : null}
     </div>
@@ -1295,7 +1315,7 @@ function CleaningGame() {
 
   const buy = (cost, action) => {
     if (coins < cost) return;
-    playSound(sfxSelect);
+    playSelect();
     setCoins(c => c - cost);
     action();
   };
@@ -1522,7 +1542,7 @@ function QuizGame() {
                 key={d.key}
                 className="quiz-diff-btn"
                 style={{ "--diff-color": isLocked ? "#555" : d.color, opacity: isLocked ? 0.5 : 1, cursor: isLocked ? "default" : "pointer" }}
-                onClick={() => { if (!isLocked) { playSound(sfxSelect); startGame(d.key); } }}
+                onClick={() => { if (!isLocked) { playSelect(); startGame(d.key); } }}
               >
                 <span className="quiz-diff-label">{isLocked ? "🔒" : ""}{d.label}</span>
                 <span className="quiz-diff-desc">{isLocked ? "어려움 클리어" : `${d.count}문제`}</span>
@@ -1544,7 +1564,7 @@ function QuizGame() {
         <div className="quiz-result-score">{score} / {total}</div>
         <div className="quiz-result-pct">{pct}점</div>
         <div className="quiz-result-msg">{msg}</div>
-        <button className="quiz-retry-btn" onClick={() => { playSound(sfxSelect); setPhase("difficulty"); }}>처음으로</button>
+        <button className="quiz-retry-btn" onClick={() => { playSelect(); setPhase("difficulty"); }}>처음으로</button>
       </div>
     );
   }
@@ -1595,7 +1615,7 @@ function GameModal({ gameId, onClose, zoom = 1 }) {
           <span className="game-modal-title">
             {GAME_LABELS[gameId] ?? gameId}
           </span>
-          <button className="game-modal-close" onClick={() => { playSound(sfxSelect); onClose(); }}>✕</button>
+          <button className="game-modal-close" onClick={() => { playSelect(); onClose(); }}>✕</button>
         </div>
         <div className="game-modal-body" style={(gameId === "game1" || gameId === "ox" || gameId === "word" || gameId === "memory") ? { padding: 0 } : {}}>
           {gameId === "game1" && <NailGame />}
@@ -1685,8 +1705,8 @@ function Book({ onStartGame, zoom }) {
         showPageCorners={!showGoFirstButton}
         disableFlipByClick={showGoFirstButton}
         className="magic-book"
-        onFlip={(e) => { playSound(sfxPageFlip); setCurrentPage(e.data); }}
-        onChangeState={(e) => setBookState(e.data)}
+        onFlip={(e) => setCurrentPage(e.data)}
+        onChangeState={(e) => { if (e.data === "flipping") playSound(sfxPageFlip); setBookState(e.data); }}
         onInit={(e) => prepareBook(e.object)}
         onUpdate={(e) => prepareBook(e.object)}
       >
@@ -1782,7 +1802,7 @@ function Book({ onStartGame, zoom }) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                playSound(sfxSelect);
+                playSelect();
                 goFirstPage();
               }}
               style={{
@@ -1807,7 +1827,7 @@ export default function App() {
   useGoogleFonts();
   const [volume, setVolume] = useState(100);
   const [muted, setMuted] = useState(false);
-  const handleVolume = (v) => { setVolume(v); _vol = v / 100; };
+  const handleVolume = (v) => { setVolume(v); _vol = v / 100; if (_audioCtx) {} };
   const handleMute = () => { setMuted(m => { _muted = !m; return !m; }); };
   const [activeGame, setActiveGame] = useState(null);
   const initialZoom = Math.max(0.4, Math.min(2, (window.innerWidth - 96) / (467 * 2), (window.innerHeight - 96) / 660));
@@ -3183,10 +3203,10 @@ export default function App() {
           tip: 큰화면으로 플레이하면 편하다
         </div>
         <div className="zoom-controls" aria-label="zoom controls">
-          <button type="button" onClick={() => { playSound(sfxSelect); zoomOut(); }} aria-label="zoom out">-</button>
+          <button type="button" onClick={() => { playSelect(); zoomOut(); }} aria-label="zoom out">-</button>
           <span>{Math.round(zoom * 100)}%</span>
-          <button type="button" onClick={() => { playSound(sfxSelect); zoomIn(); }} aria-label="zoom in">+</button>
-          <button type="button" onClick={() => { playSound(sfxSelect); resetZoom(); }} aria-label="reset zoom">초기화</button>
+          <button type="button" onClick={() => { playSelect(); zoomIn(); }} aria-label="zoom in">+</button>
+          <button type="button" onClick={() => { playSelect(); resetZoom(); }} aria-label="reset zoom">초기화</button>
         </div>
       </div>
 

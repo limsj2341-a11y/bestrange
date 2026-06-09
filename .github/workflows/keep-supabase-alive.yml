@@ -1,0 +1,17 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: "0 0 */3 * *"  # 3일마다 실행
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          curl -s \
+            "https://uvveffiuekvjmbqhlqnt.supabase.co/rest/v1/rankings?select=id&limit=1" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2dmVmZml1ZWt2am1icWhscW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTIwNTgsImV4cCI6MjA5NDI2ODA1OH0.pBKdyDAr_Tb-COFzkGCweyAHVb-VTWJjrQm2Cbmn9Hc" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2dmVmZml1ZWt2am1icWhscW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2OTIwNTgsImV4cCI6MjA5NDI2ODA1OH0.pBKdyDAr_Tb-COFzkGCweyAHVb-VTWJjrQm2Cbmn9Hc"
+          echo "Supabase ping complete"
