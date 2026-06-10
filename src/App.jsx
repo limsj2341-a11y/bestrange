@@ -1,4 +1,4 @@
-import {
+﻿import {
   useState,
   useEffect,
   useRef,
@@ -1511,7 +1511,7 @@ const QUIZ_QUESTIONS = {
   hell: [
     { q: "'이상한 사람들'의 그린이는?", options: ["정중모", "김무연", "함명춘", "김민서"], answer: 1 },
     { q: "노마가 산 우표에 그려진 그림은?", options: ["여왕의 초상화", "나무 한 그루", "바다", "모나리자"], answer: 0 },
-    { q: "노마는 나무 위에서 본 과일들에게 이름을 지어주었는데, 이 중 언급하지 않은 것은?", options: ["벽시계", "전화기", "자명종", "바구니"], answer: 1 },
+    { q: "노마는 나무 위에서 본 과일들에게 이름을 지어주었는데, 이 중 언급하지 않은 것은?", options: ["벽시계", "전화기", "자명종", "저금통"], answer: 1 },
     { q: "노마가 작은 집을 소유하게 된 나이는?", options: ["65세", "66세", "67세", "70세"], answer: 2 },
     { q: "'침묵은 금이다'의 아저씨는 몇 번의 금연 결심을 못 채워 파기하였나요?", options: ["7번", "8번", "9번", "12번"], answer: 2 },
     { q: "'침묵은 금이다'의 아저씨가 아이들에게 얘기해준 동화 중 언급된 것은?", options: ["콩쥐팥쥐", "토끼와 거북이", "흥부와 놀부", "금도끼 은도끼"], answer: 0 },
@@ -1529,6 +1529,11 @@ function QuizGame() {
   const [locked, setLocked] = useState(false);
   const [clearedDiffs, setClearedDiffs] = useState(new Set());
   const currentDiffRef = useRef(null);
+
+  useEffect(() => {
+    setPicked(null);
+    setLocked(false);
+  }, [currentQ]);
 
   const startGame = (diff) => {
     currentDiffRef.current = diff;
@@ -1955,7 +1960,7 @@ export default function App() {
     <div
       style={{
         width: "100%",
-        height: "100vh",
+        height: "100dvh",
         userSelect: "none",
         WebkitUserSelect: "none",
         background: `
@@ -1988,6 +1993,12 @@ export default function App() {
           margin:0;
           padding:0;
           box-sizing:border-box;
+        }
+
+        html, body {
+          overflow: hidden;
+          height: 100%;
+          touch-action: none;
         }
 
         .book-stage {
@@ -3259,7 +3270,7 @@ export default function App() {
 
       `}</style>
 
-      <div style={{ position: "absolute", top: 24, right: 24, zIndex: 20, display: "flex", gap: 8, alignItems: "center" }}>
+      <div style={{ position: "fixed", top: 24, right: 24, zIndex: 20, display: "flex", gap: 8, alignItems: "center" }}>
         <div style={{ padding: "8px 14px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)", fontSize: "0.82rem", color: "#1a1a1a", whiteSpace: "nowrap", pointerEvents: "none" }}>
           tip: 큰화면으로 플레이하면 편하다
         </div>
@@ -3271,7 +3282,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ position: "absolute", bottom: 16, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)" }}>
+      <div style={{ position: "fixed", bottom: 16, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)" }}>
         <button
           type="button"
           onClick={handleMusicToggle}
