@@ -3336,7 +3336,7 @@ export default function App() {
       </div>
 
       <div style={{ position: "fixed", bottom: 12, right: 16, zIndex: 20, fontSize: "0.75rem", color: "rgba(0,0,0,0.45)", fontFamily: "Arial, sans-serif", pointerEvents: "none", background: "white", padding: "2px 6px", borderRadius: 4 }}>
-        made by 임승주, 류현서
+        made by 임승주, 류현서, claudeAI
       </div>
 
       {activeGame && (
