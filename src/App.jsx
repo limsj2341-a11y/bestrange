@@ -20,6 +20,7 @@ import sfxSelect from "./assets/선택.mp3";
 import sfxPageFlip from "./assets/책넘김.mp3";
 import sfxCorrect from "./assets/정답.mp3";
 import sfxClean from "./assets/닦기.mp3";
+import sfxJump from "./assets/점프.mp3";
 import bgmSrc from "./assets/브금수정.mp3";
 import tree1m from "./assets/1m.png";
 import tree3m from "./assets/3m.png";
@@ -1243,7 +1244,7 @@ function TreeGame() {
         practiceMode ? (
           <button className="tree-btn tree-btn-practice" onClick={() => { playSelect(); doPractice(); }} disabled={practiceAnim}>연습!</button>
         ) : (
-          <button className="tree-btn" onClick={() => { playSelect(); doAttempt(); }}>도전!</button>
+          <button className="tree-btn" onClick={() => { playSound(sfxJump); doAttempt(); }}>도전!</button>
         )
       ) : null}
     </div>
@@ -1878,12 +1879,23 @@ export default function App() {
 
     // 첫 클릭 시: 효과음 프리로드 + autoplay 막혔으면 BGM 재시도
     const onFirst = () => {
-      preloadSounds([sfxHammer, sfxWrong, sfxSelect, sfxPageFlip, sfxCorrect, sfxClean]);
+      preloadSounds([sfxHammer, sfxWrong, sfxSelect, sfxPageFlip, sfxCorrect, sfxClean, sfxJump]);
       if (_musicOn && _bgm && _bgm.paused) startBgm();
       window.removeEventListener("pointerdown", onFirst);
     };
     window.addEventListener("pointerdown", onFirst);
-    return () => window.removeEventListener("pointerdown", onFirst);
+
+    // 창 포커스 잃으면 즉시 BGM 정지, 돌아오면 재생
+    const onBlur  = () => { if (_bgm && _musicOn) _bgm.pause(); };
+    const onFocus = () => { if (_bgm && _musicOn) _bgm.play().catch(() => {}); };
+    window.addEventListener("blur",  onBlur);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("pointerdown", onFirst);
+      window.removeEventListener("blur",  onBlur);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
   const handleVolume = (v) => { setVolume(v); _vol = v / 100; syncBgmVolume(); };
   const handleMute = () => { setMuted(m => { _muted = !m; syncBgmVolume(); return !m; }); };
@@ -2054,7 +2066,7 @@ export default function App() {
           border: 1px solid rgba(0, 0, 0, 0.16);
           border-radius: 8px;
           background: rgba(255, 255, 255, 0.82);
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+          box-shadow: none;
           backdrop-filter: blur(8px);
         }
 
@@ -3270,8 +3282,8 @@ export default function App() {
 
       `}</style>
 
-      <div style={{ position: "fixed", top: 24, right: 24, zIndex: 20, display: "flex", gap: 8, alignItems: "center" }}>
-        <div style={{ padding: "8px 14px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)", fontSize: "0.82rem", color: "#1a1a1a", whiteSpace: "nowrap", pointerEvents: "none" }}>
+      <div style={{ position: "fixed", top: 12, right: 24, zIndex: 20, display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: "8px 14px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "none", backdropFilter: "blur(8px)", fontSize: "0.82rem", color: "#1a1a1a", whiteSpace: "nowrap", pointerEvents: "none" }}>
           tip: 큰화면으로 플레이하면 편하다
         </div>
         <div className="zoom-controls" aria-label="zoom controls">
@@ -3282,7 +3294,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ position: "fixed", bottom: 16, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "0 10px 24px rgba(0,0,0,0.14)", backdropFilter: "blur(8px)" }}>
+      <div style={{ position: "fixed", top: 12, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "none", backdropFilter: "blur(8px)" }}>
         <button
           type="button"
           onClick={handleMusicToggle}
@@ -3321,6 +3333,10 @@ export default function App() {
         }}
       >
         <Book onStartGame={setActiveGame} zoom={zoom} />
+      </div>
+
+      <div style={{ position: "fixed", bottom: 12, right: 16, zIndex: 20, fontSize: "0.75rem", color: "rgba(0,0,0,0.45)", fontFamily: "Arial, sans-serif", pointerEvents: "none", background: "white", padding: "2px 6px", borderRadius: 4 }}>
+        made by 임승주, 류현서
       </div>
 
       {activeGame && (
