@@ -1749,7 +1749,7 @@ function Book({ onStartGame, zoom }) {
         disableFlipByClick={showGoFirstButton}
         className="magic-book"
         onFlip={(e) => setCurrentPage(e.data)}
-        onChangeState={(e) => { if (e.data === "flipping") playSound(sfxPageFlip); setBookState(e.data); }}
+        onChangeState={(e) => { if (e.data === "flipping") { playSound(sfxPageFlip); if (_musicOn && _bgm && _bgm.paused) startBgm(); } setBookState(e.data); }}
         onInit={(e) => prepareBook(e.object)}
         onUpdate={(e) => prepareBook(e.object)}
       >
@@ -1872,28 +1872,20 @@ export default function App() {
   const [muted, setMuted] = useState(false);
   const [musicOn, setMusicOn] = useState(true);
   useEffect(() => {
-    // BGM 즉시 시작 시도
+    // BGM 객체 미리 생성 (재생은 표지 넘길 때)
     if (!_bgm) {
       _bgm = new Audio(bgmSrc);
       _bgm.loop = true;
-      if (_musicOn) startBgm();
     }
 
-    // 사용자 제스처 감지 → 효과음 프리로드 + BGM 재생 성공할 때까지 반복 시도
-    const tryStart = () => {
+    // 첫 상호작용 시 효과음 프리로드
+    const tryPreload = () => {
       preloadSounds([sfxHammer, sfxWrong, sfxSelect, sfxPageFlip, sfxCorrect, sfxClean, sfxJump]);
-      if (_musicOn && _bgm && _bgm.paused) {
-        _bgm.play().then(() => {
-          document.removeEventListener("touchstart", tryStart);
-          document.removeEventListener("pointerdown", tryStart);
-        }).catch(() => {});
-      } else {
-        document.removeEventListener("touchstart", tryStart);
-        document.removeEventListener("pointerdown", tryStart);
-      }
+      document.removeEventListener("touchstart", tryPreload);
+      document.removeEventListener("pointerdown", tryPreload);
     };
-    document.addEventListener("touchstart", tryStart, { passive: true });
-    document.addEventListener("pointerdown", tryStart);
+    document.addEventListener("touchstart", tryPreload, { passive: true });
+    document.addEventListener("pointerdown", tryPreload);
 
     // 창 포커스 잃으면 즉시 BGM 정지, 돌아오면 재생
     const onBlur  = () => { if (_bgm && _musicOn) _bgm.pause(); };
@@ -1902,8 +1894,8 @@ export default function App() {
     window.addEventListener("focus", onFocus);
 
     return () => {
-      document.removeEventListener("touchstart", tryStart);
-      document.removeEventListener("pointerdown", tryStart);
+      document.removeEventListener("touchstart", tryPreload);
+      document.removeEventListener("pointerdown", tryPreload);
       window.removeEventListener("blur",  onBlur);
       window.removeEventListener("focus", onFocus);
     };
