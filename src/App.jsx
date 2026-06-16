@@ -991,6 +991,7 @@ function TreeGame() {
     if (anim !== "idle" || practiceAnim) return;
     const ok = Math.random() < effectiveProb;
     if (ok) {
+      playSound(sfxJump);
       setAnim("jumping");
       setDeadStage(null);
       const sceneW = sceneRef.current?.clientWidth ?? 740;
@@ -1039,6 +1040,7 @@ function TreeGame() {
       }
     } else {
       setAnim("failing");
+      playSound(sfxWrong);
       const t0 = performance.now();
       const dur = 1300;
       const tick = (now) => {
@@ -1244,7 +1246,7 @@ function TreeGame() {
         practiceMode ? (
           <button className="tree-btn tree-btn-practice" onClick={() => { playSelect(); doPractice(); }} disabled={practiceAnim}>연습!</button>
         ) : (
-          <button className="tree-btn" onClick={() => { playSound(sfxJump); doAttempt(); }}>도전!</button>
+          <button className="tree-btn" onClick={() => { doAttempt(); }}>도전!</button>
         )
       ) : null}
     </div>
@@ -1612,7 +1614,7 @@ function QuizGame() {
 
   const q = questions[currentQ];
   return (
-    <div className="quiz-wrap" style={{ position: "relative" }}>
+    <div key={currentQ} className="quiz-wrap" style={{ position: "relative" }}>
       <button className="quiz-back-btn" onClick={() => setPhase("difficulty")}>← 뒤로</button>
       <div className="quiz-progress">{currentQ + 1} / {questions.length}</div>
       <div className="quiz-question">{q.q}</div>
@@ -1877,13 +1879,21 @@ export default function App() {
       if (_musicOn) startBgm();
     }
 
-    // 첫 클릭 시: 효과음 프리로드 + autoplay 막혔으면 BGM 재시도
-    const onFirst = () => {
+    // 사용자 제스처 감지 → 효과음 프리로드 + BGM 재생 성공할 때까지 반복 시도
+    const tryStart = () => {
       preloadSounds([sfxHammer, sfxWrong, sfxSelect, sfxPageFlip, sfxCorrect, sfxClean, sfxJump]);
-      if (_musicOn && _bgm && _bgm.paused) startBgm();
-      window.removeEventListener("pointerdown", onFirst);
+      if (_musicOn && _bgm && _bgm.paused) {
+        _bgm.play().then(() => {
+          document.removeEventListener("touchstart", tryStart);
+          document.removeEventListener("pointerdown", tryStart);
+        }).catch(() => {});
+      } else {
+        document.removeEventListener("touchstart", tryStart);
+        document.removeEventListener("pointerdown", tryStart);
+      }
     };
-    window.addEventListener("pointerdown", onFirst);
+    document.addEventListener("touchstart", tryStart, { passive: true });
+    document.addEventListener("pointerdown", tryStart);
 
     // 창 포커스 잃으면 즉시 BGM 정지, 돌아오면 재생
     const onBlur  = () => { if (_bgm && _musicOn) _bgm.pause(); };
@@ -1892,7 +1902,8 @@ export default function App() {
     window.addEventListener("focus", onFocus);
 
     return () => {
-      window.removeEventListener("pointerdown", onFirst);
+      document.removeEventListener("touchstart", tryStart);
+      document.removeEventListener("pointerdown", tryStart);
       window.removeEventListener("blur",  onBlur);
       window.removeEventListener("focus", onFocus);
     };
@@ -3294,7 +3305,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ position: "fixed", top: 12, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "none", backdropFilter: "blur(8px)" }}>
+      <div style={{ position: "fixed", bottom: 12, left: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: "1px solid rgba(0,0,0,0.16)", borderRadius: 8, background: "rgba(255,255,255,0.82)", boxShadow: "none", backdropFilter: "blur(8px)" }}>
         <button
           type="button"
           onClick={handleMusicToggle}
