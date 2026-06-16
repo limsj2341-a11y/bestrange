@@ -1528,15 +1528,10 @@ function QuizGame() {
   const [questions, setQuestions] = useState([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [score, setScore] = useState(0);
-  const [picked, setPicked] = useState(null);
+  const [picked, setPicked] = useState(null); // { q: index, idx: optionIdx } | null
   const [locked, setLocked] = useState(false);
   const [clearedDiffs, setClearedDiffs] = useState(new Set());
   const currentDiffRef = useRef(null);
-
-  useEffect(() => {
-    setPicked(null);
-    setLocked(false);
-  }, [currentQ]);
 
   const startGame = (diff) => {
     currentDiffRef.current = diff;
@@ -1551,7 +1546,7 @@ function QuizGame() {
   const handleAnswer = (idx) => {
     if (locked) return;
     setLocked(true);
-    setPicked(idx);
+    setPicked({ q: currentQ, idx });
     const ans = questions[currentQ].answer;
     const isCorrect = Array.isArray(ans) ? ans.includes(idx) : idx === ans;
     playSound(isCorrect ? sfxCorrect : sfxWrong);
@@ -1562,7 +1557,6 @@ function QuizGame() {
         setPhase("result");
       } else {
         setCurrentQ((q) => q + 1);
-        setPicked(null);
         setLocked(false);
       }
     }, 900);
@@ -1621,10 +1615,10 @@ function QuizGame() {
       <div className="quiz-options">
         {q.options.map((opt, i) => {
           let cls = "quiz-opt-btn";
-          if (picked !== null) {
+          if (picked !== null && picked.q === currentQ) {
             const isAns = Array.isArray(q.answer) ? q.answer.includes(i) : i === q.answer;
             if (isAns) cls += " correct";
-            else if (i === picked) cls += " wrong";
+            else if (i === picked.idx) cls += " wrong";
           }
           return (
             <button key={i} className={cls} onClick={() => handleAnswer(i)}>
