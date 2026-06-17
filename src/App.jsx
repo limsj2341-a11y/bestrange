@@ -80,7 +80,7 @@ const loadBuffer = async (src) => {
 
 const preloadSounds = (srcs) => srcs.forEach(s => loadBuffer(s).catch(() => {}));
 
-const playSound = (src, rate = 1) => {
+const playSound = (src, rate = 1, volMult = 1) => {
   if (_muted) return;
   try {
     const ctx = getCtx();
@@ -90,16 +90,16 @@ const playSound = (src, rate = 1) => {
       source.buffer = buf;
       source.playbackRate.value = rate;
       const gain = ctx.createGain();
-      gain.gain.value = _vol * 2.5;
+      gain.gain.value = _vol * 2.5 * volMult;
       source.connect(gain);
       gain.connect(ctx.destination);
       source.start(0);
     } else {
-      loadBuffer(src).then(() => playSound(src, rate)).catch(() => {});
+      loadBuffer(src).then(() => playSound(src, rate, volMult)).catch(() => {});
     }
   } catch {
     const a = new Audio(src);
-    a.volume = Math.min(1, _vol);
+    a.volume = Math.min(1, _vol * volMult);
     a.playbackRate = rate;
     a.play().catch(() => {});
   }
@@ -1316,8 +1316,8 @@ function CleaningGame() {
   // 닦기 소리 반복
   useEffect(() => {
     if (phase !== "cleaning" || !isPointing) return;
-    playSound(sfxClean);
-    const id = setInterval(() => playSound(sfxClean), 500);
+    playSound(sfxClean, 1, 0.3);
+    const id = setInterval(() => playSound(sfxClean, 1, 0.3), 500);
     return () => clearInterval(id);
   }, [phase, isPointing]);
 
