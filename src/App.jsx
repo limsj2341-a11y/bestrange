@@ -14,6 +14,7 @@ import charMiddle from "./assets/중년.png";
 import charOld from "./assets/노인.png";
 import charGrandpa from "./assets/할아버지.png";
 import vnBg from "./assets/벽돌.jpg";
+import frameImg from "./assets/액자.png";
 import sfxHammer from "./assets/망치질.mp3";
 import sfxWrong from "./assets/틀림.mp3";
 import sfxSelect from "./assets/선택.mp3";
@@ -813,7 +814,7 @@ function NailGame() {
           onClick={phase === "playing" ? handleWallClick : undefined}
           style={{ cursor: phase === "ending" ? "default" : "crosshair" }}
         >
-          <div className="nail-frame" />
+          <img src={frameImg} alt="" className="nail-frame" style={{ pointerEvents: "none", userSelect: "none" }} />
           {phase === "playing" && goldenZone && (
             <div
               className="nail-zone nail-zone-golden"
@@ -1278,7 +1279,7 @@ const INCOME_UPGRADES = [
   { label: "수입 Lv.3", cost: 800,  reward: 400 },
   { label: "수입 Lv.4", cost: 2000, reward: 800 },
 ];
-const ENDING_COST = 3000;
+const ENDING_COST = 4000;
 
 function CleaningGame() {
   const [phase, setPhase] = useState("idle"); // "idle" | "cleaning" | "done" | "ending"
@@ -1311,6 +1312,14 @@ function CleaningGame() {
     }, 80);
     return () => clearInterval(id);
   }, [phase, isPointing, cleanPower]);
+
+  // 닦기 소리 반복
+  useEffect(() => {
+    if (phase !== "cleaning" || !isPointing) return;
+    playSound(sfxClean);
+    const id = setInterval(() => playSound(sfxClean), 500);
+    return () => clearInterval(id);
+  }, [phase, isPointing]);
 
   // 자동 닦기
   useEffect(() => {
@@ -1472,7 +1481,7 @@ function CleaningGame() {
       <div className="clean-left">
         <div className="clean-idle-title">신발 닦기</div>
         <div className="clean-idle-sub">총 {totalCleaned}개 완료</div>
-        <button className="clean-start-btn" onClick={() => { playSound(sfxClean); startCleaning(); }}>닦기</button>
+        <button className="clean-start-btn" onClick={() => { playSelect(); startCleaning(); }}>닦기</button>
       </div>
       {rightPanel}
     </div>
@@ -2385,15 +2394,9 @@ export default function App() {
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 160px;
-          height: 200px;
-          border: 14px solid #7a4e2d;
-          box-shadow:
-            inset 0 0 0 2px #c9913e,
-            inset 0 0 0 5px #5c3318,
-            0 6px 18px rgba(0,0,0,0.32);
-          background: linear-gradient(135deg, #e8dcc0, #d0c090);
-          border-radius: 2px;
+          width: 340px;
+          height: 425px;
+          object-fit: contain;
           pointer-events: none;
         }
         .nail-head {
